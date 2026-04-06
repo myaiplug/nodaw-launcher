@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NoDAW Studio Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/libflac/libflac.min.js"></script>
+    <link rel="stylesheet" href="/index.css">
+    <script>
+      // Tailwind config for Cyber-HUD design
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'slate': {
+                950: '#020617',
+                900: '#0f172a',
+                800: '#1e293b',
+                700: '#334155',
+                600: '#475569',
+                500: '#64748b',
+                400: '#94a3b8',
+                300: '#cbd5e1',
+                200: '#e2e8f0',
+              },
+              'cyan': {
+                900: '#164e63',
+                800: '#155e75',
+                700: '#0e7490',
+                600: '#0891b2',
+                500: '#06b6d4',
+                400: '#22d3ee',
+                300: '#67e8f9',
+                50: '#ecfeff',
+              },
+            },
+            fontFamily: {
+              'mono': ['JetBrains Mono', 'monospace'],
+              'tech': ['Rajdhani', 'sans-serif'],
+              'minimal': ['Manrope', 'sans-serif'],
+              'display': ['Syncopate', 'sans-serif'],
+              'outfit': ['Outfit', 'sans-serif'],
+            },
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <!-- Loading Screen -->
+    <div id="nodaw-loader">
+      <!-- Floating particles -->
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      
+      <!-- Main loader -->
+      <div class="loader-container">
+        <div class="loader-ring"></div>
+        <div class="loader-ring-2"></div>
+        <div class="loader-orb"></div>
+        <div class="loader-logo">
+          <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#06B6D4"/>
+                <stop offset="100%" stop-color="#A855F7"/>
+              </linearGradient>
+            </defs>
+            <!-- Waveform bars - minimal modern design -->
+            <rect x="4" y="20" width="4" height="16" rx="2" fill="url(#logoGradient)" opacity="0.6">
+              <animate attributeName="height" values="16;24;16" dur="1s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="20;16;20" dur="1s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="12" y="14" width="4" height="28" rx="2" fill="url(#logoGradient)" opacity="0.8">
+              <animate attributeName="height" values="28;18;28" dur="1.2s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="14;19;14" dur="1.2s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="20" y="8" width="4" height="40" rx="2" fill="url(#logoGradient)">
+              <animate attributeName="height" values="40;30;40" dur="0.8s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="8;13;8" dur="0.8s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="28" y="12" width="4" height="32" rx="2" fill="url(#logoGradient)" opacity="0.9">
+              <animate attributeName="height" values="32;22;32" dur="1.1s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="12;17;12" dur="1.1s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="36" y="16" width="4" height="24" rx="2" fill="url(#logoGradient)" opacity="0.7">
+              <animate attributeName="height" values="24;32;24" dur="0.9s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="16;12;16" dur="0.9s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="44" y="22" width="4" height="12" rx="2" fill="url(#logoGradient)" opacity="0.5">
+              <animate attributeName="height" values="12;20;12" dur="1.3s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="22;18;22" dur="1.3s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="52" y="26" width="4" height="4" rx="2" fill="url(#logoGradient)" opacity="0.3">
+              <animate attributeName="height" values="4;12;4" dur="1s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="26;22;26" dur="1s" repeatCount="indefinite"/>
+            </rect>
+          </svg>
+        </div>
+      </div>
+      
+      <div class="loader-text">NoDAW</div>
+      <div class="loader-subtitle">Studio Suite</div>
+      
+      <div class="loader-bar">
+        <div class="loader-bar-fill"></div>
+      </div>
+    </div>
+    
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

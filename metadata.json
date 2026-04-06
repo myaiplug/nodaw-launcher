@@ -1,0 +1,7 @@
+{
+  "name": "NoDAW Studio Suite",
+  "description": "Professional audio launcher hub with conversion, trimming, A/B comparison, multi-track editing, BPM detection, and real-time audio analysis.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

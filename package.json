@@ -1,0 +1,63 @@
+{
+  "name": "nodaw-studio",
+  "private": true,
+  "version": "1.1.2",
+  "description": "Professional Audio Suite",
+  "author": "b33zy",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3001 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron": "electron . --user-data-dir=\"%TEMP%\\nodaw-user\" --disk-cache-dir=\"%TEMP%\\nodaw-cache\"",
+    "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run electron\"",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.nodaw.studio",
+    "productName": "NoDAW Studio Suite",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "nodaw.png",
+      "nodaw.ico"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "nodaw.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "framer-motion": "^12.38.0",
+    "lamejs": "^1.2.1",
+    "libflacjs": "^5.4.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "three": "^0.183.2",
+    "web-audio-beat-detector": "^8.2.35",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/three": "^0.183.1",
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^40.2.1",
+    "electron-builder": "^26.7.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "wait-on": "^9.0.3"
+  }
+}
