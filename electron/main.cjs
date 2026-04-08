@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { spawn } = require('child_process');
 const http = require('http');
 
@@ -61,8 +62,11 @@ async function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.cjs')
     },
-    title: "NoDAW Studio Suite"
+    title: "NoDAW Studio Suite",
+    frame: true,
+    titleBarStyle: 'default'
   });
 
   // Check if we are in development mode based on execution argument or environment
@@ -89,7 +93,136 @@ async function createWindow() {
 app.whenReady().then(() => {
   createWindow();
   
-  // IPC handler for launching sub-apps
+  // === App Info ===
+  ipcMain.handle('get-app-info', () => ({
+    name: app.getName(),
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    electronVersion: process.versions.electron,
+    nodeVersion: process.versions.node
+  }));
+
+  // === Window Controls ===
+  ipcMain.on('window-minimize', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
+  });
+  
+  ipcMain.on('window-maximize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win?.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win?.maximize();
+    }
+  });
+  
+  ipcMain.on('window-close', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close();
+  });
+
+  // === File Dialogs ===
+  ipcMain.handle('dialog-open-file', async (event, options = {}) => {
+    const defaults = {
+      title: 'Open Audio File',
+      filters: [
+        { name: 'Audio Files', extensions: ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    };
+    
+    const result = await dialog.showOpenDialog({
+      ...defaults,
+      ...options
+    });
+    
+    if (result.canceled || !result.filePaths.length) {
+      return { canceled: true };
+    }
+    
+    return { 
+      canceled: false, 
+      filePath: result.filePaths[0],
+      filePaths: result.filePaths
+    };
+  });
+  
+  ipcMain.handle('dialog-save-file', async (event, options = {}) => {
+    const defaults = {
+      title: 'Save Audio File',
+      filters: [
+        { name: 'WAV Audio', extensions: ['wav'] },
+        { name: 'MP3 Audio', extensions: ['mp3'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    };
+    
+    const result = await dialog.showSaveDialog({
+      ...defaults,
+      ...options
+    });
+    
+    if (result.canceled || !result.filePath) {
+      return { canceled: true };
+    }
+    
+    return { 
+      canceled: false, 
+      filePath: result.filePath 
+    };
+  });
+
+  // === File Operations ===
+  ipcMain.handle('file-read', async (event, filePath) => {
+    try {
+      const data = await fs.promises.readFile(filePath);
+      return { success: true, data: data.buffer };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+  
+  ipcMain.handle('file-write', async (event, filePath, data) => {
+    try {
+      await fs.promises.writeFile(filePath, Buffer.from(data));
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // === Audio Export ===
+  ipcMain.handle('export-audio', async (event, options) => {
+    const { data, format, defaultName } = options;
+    
+    const filterMap = {
+      wav: { name: 'WAV Audio', extensions: ['wav'] },
+      mp3: { name: 'MP3 Audio', extensions: ['mp3'] },
+      ogg: { name: 'OGG Audio', extensions: ['ogg'] },
+      flac: { name: 'FLAC Audio', extensions: ['flac'] }
+    };
+    
+    const result = await dialog.showSaveDialog({
+      title: 'Export Audio',
+      defaultPath: defaultName || `export.${format}`,
+      filters: [filterMap[format] || { name: 'Audio', extensions: [format] }]
+    });
+    
+    if (result.canceled || !result.filePath) {
+      return { success: false, canceled: true };
+    }
+    
+    try {
+      await fs.promises.writeFile(result.filePath, Buffer.from(data));
+      // Open the folder containing the file
+      shell.showItemInFolder(result.filePath);
+      return { success: true, filePath: result.filePath };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // === Sub-app Launching ===
   ipcMain.handle('launch-subapp', async (event, appPath) => {
     const subAppPaths = {
       'TrimIt': path.join(__dirname, '..', 'TrimIt'),

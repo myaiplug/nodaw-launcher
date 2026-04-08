@@ -27,7 +27,8 @@ import {
   SplitItPanel,
   ScrewItPanel,
   FXitPanel,
-  WorkstationPanel
+  WorkstationPanel,
+  SettingsPanel
 } from './panels';
 
 // Onboarding sequence component
@@ -213,6 +214,7 @@ const LauncherApp: React.FC = () => {
   const [pendingUnlockTool, setPendingUnlockTool] = useState<Tool | null>(null);
   const [showAchievement, setShowAchievement] = useState(false);
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   
   // License store
   const { getCurrentTier, canAccessTool, activateLicense } = useLicenseStore();
@@ -240,8 +242,10 @@ const LauncherApp: React.FC = () => {
   // Global keyboard shortcuts
   useKeyboardShortcuts([
     { key: 't', ctrl: true, handler: (e) => { e.preventDefault(); toggleTheme(); } },
+    { key: ',', ctrl: true, handler: (e) => { e.preventDefault(); setShowSettings(s => !s); } },
     { key: 'Escape', handler: () => {
-      if (activeTool) setActiveTool(null);
+      if (showSettings) setShowSettings(false);
+      else if (activeTool) setActiveTool(null);
       else if (unlockModalOpen) setUnlockModalOpen(false);
     }},
     // Quick launch shortcuts (1-7 for tools)
@@ -313,14 +317,30 @@ const LauncherApp: React.FC = () => {
         <ParticleField />
       </Suspense>
       
-      {/* Theme Toggle - Top Left */}
+      {/* Theme Toggle & Settings - Top Left */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="fixed top-4 left-4 z-30"
+        className="fixed top-4 left-4 z-30 flex items-center gap-2"
       >
         <ThemeToggle />
+        <motion.button
+          onClick={() => setShowSettings(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`p-2.5 rounded-xl transition-colors ${
+            isDark
+              ? 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-slate-200 border border-slate-700/50'
+              : 'bg-white/80 hover:bg-slate-50 text-slate-500 hover:text-slate-700 border border-slate-200 shadow-sm'
+          }`}
+          title="Settings (Ctrl+,)"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </motion.button>
       </motion.div>
       
       {/* Tier badge */}
@@ -442,6 +462,16 @@ const LauncherApp: React.FC = () => {
 
       {/* Global Drop Zone Overlay */}
       <DropZoneOverlay isActive={isDragging && !activeTool} />
+
+      {/* Settings Panel */}
+      <ToolPanel
+        open={showSettings}
+        title="Settings"
+        icon="⚙️"
+        onBack={() => setShowSettings(false)}
+      >
+        <SettingsPanel />
+      </ToolPanel>
     </div>
   );
 };

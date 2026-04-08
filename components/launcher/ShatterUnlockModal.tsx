@@ -6,6 +6,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { TierType } from './FeatureTile3D';
+import { useAudioFeedback } from './hooks/useAudioFeedback';
 
 interface UnlockModalProps {
   open: boolean;
@@ -81,6 +82,7 @@ export const ShatterUnlockModal: React.FC<UnlockModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showShatter, setShowShatter] = useState(false);
+  const { playUnlock, playError } = useAudioFeedback({ volume: 0.1 });
   
   const tierColors = {
     pro: {
@@ -107,6 +109,7 @@ export const ShatterUnlockModal: React.FC<UnlockModalProps> = ({
     const trimmedKey = licenseKey.trim();
     if (!trimmedKey) {
       setError('Please enter a license key');
+      playError();
       return;
     }
     
@@ -116,6 +119,7 @@ export const ShatterUnlockModal: React.FC<UnlockModalProps> = ({
     try {
       const success = await onUnlock(trimmedKey);
       if (success) {
+        playUnlock();
         setShowShatter(true);
         setTimeout(() => {
           setIsSuccess(true);
@@ -130,14 +134,16 @@ export const ShatterUnlockModal: React.FC<UnlockModalProps> = ({
           }, 300);
         }, 2000);
       } else {
+        playError();
         setError('Invalid license key');
       }
     } catch (e) {
+      playError();
       setError('Verification failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [licenseKey, onUnlock, onClose]);
+  }, [licenseKey, onUnlock, onClose, playUnlock, playError]);
   
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isLoading) {

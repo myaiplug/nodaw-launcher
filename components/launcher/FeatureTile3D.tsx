@@ -6,6 +6,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { useThemeStore } from './themeStore';
+import { useAudioFeedback } from './hooks/useAudioFeedback';
 
 export type TierType = 'free' | 'pro' | 'pro_plus';
 
@@ -99,6 +100,7 @@ export const FeatureTile3D: React.FC<FeatureTileProps> = ({
   const theme = useThemeStore(state => state.theme);
   const isDark = theme === 'dark';
   const [isHovered, setIsHovered] = useState(false);
+  const { playHover, playClick, playLock } = useAudioFeedback({ volume: 0.06 });
   
   // 3D tilt effect with mouse tracking
   const x = useMotionValue(0);
@@ -126,14 +128,21 @@ export const FeatureTile3D: React.FC<FeatureTileProps> = ({
     setIsHovered(false);
   }, [x, y]);
   
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+    playHover();
+  }, [playHover]);
+  
   const handleClick = useCallback(() => {
     if (status === 'coming-soon') return;
     if (locked) {
+      playLock();
       onUnlockRequest();
     } else {
+      playClick();
       onLaunch();
     }
-  }, [locked, status, onUnlockRequest, onLaunch]);
+  }, [locked, status, onUnlockRequest, onLaunch, playClick, playLock]);
   
   const TIER_STYLES = isDark ? TIER_STYLES_DARK : TIER_STYLES_LIGHT;
   const STATUS_BADGES = isDark ? STATUS_BADGES_DARK : STATUS_BADGES_LIGHT;
@@ -147,7 +156,7 @@ export const FeatureTile3D: React.FC<FeatureTileProps> = ({
       className="relative"
       style={{ perspective: 1000 }}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       <motion.button
