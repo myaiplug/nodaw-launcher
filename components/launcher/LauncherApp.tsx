@@ -27,6 +27,7 @@ import {
   SplitItPanel,
   ScrewItPanel,
   FXitPanel,
+  IconItPanel,
   WorkstationPanel,
   SettingsPanel
 } from './panels';
@@ -87,7 +88,7 @@ const OnboardingSequence: React.FC<{ onComplete: () => void }> = ({ onComplete }
             transition={{ delay: 0.1 }}
             className={`text-sm font-mono tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-600'}`}
           >
-            One App. Seven Powers. Zero Limits.
+            One App. Eight Tools. Zero Limits.
           </motion.p>
         )}
       </AnimatePresence>
@@ -222,15 +223,26 @@ const LauncherApp: React.FC = () => {
   
   // Global file drop handling
   const { isDragging } = useGlobalFileDrop({
-    accept: ['audio/*', '.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac'],
+    accept: ['audio/*', 'image/*', '.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.png', '.jpg', '.jpeg', '.svg'],
     multiple: false,
     onDrop: (files) => {
       if (files.length > 0) {
-        setDroppedFile(files[0]);
-        // Auto-route to TrimIt for single audio files
-        const trimItTool = TOOLS.find(t => t.id === 'trim-it');
-        if (trimItTool && canAccessTool('trim-it')) {
-          setActiveTool(trimItTool);
+        const file = files[0];
+        setDroppedFile(file);
+        
+        // Route based on file type
+        if (file.type.startsWith('image/')) {
+          // Image files go to IconIt
+          const iconItTool = TOOLS.find(t => t.id === 'icon-it');
+          if (iconItTool && canAccessTool('icon-it')) {
+            setActiveTool(iconItTool);
+          }
+        } else {
+          // Audio files go to TrimIt
+          const trimItTool = TOOLS.find(t => t.id === 'trim-it');
+          if (trimItTool && canAccessTool('trim-it')) {
+            setActiveTool(trimItTool);
+          }
         }
       }
     },
@@ -256,6 +268,7 @@ const LauncherApp: React.FC = () => {
     { key: '5', handler: () => !activeTool && launchToolByIndex(4) },
     { key: '6', handler: () => !activeTool && launchToolByIndex(5) },
     { key: '7', handler: () => !activeTool && launchToolByIndex(6) },
+    { key: '8', handler: () => !activeTool && launchToolByIndex(7) },
   ]);
 
   // Launch tool by index
@@ -456,6 +469,7 @@ const LauncherApp: React.FC = () => {
           {activeTool.id === 'split-it' && <SplitItPanel />}
           {activeTool.id === 'screw-it' && <ScrewItPanel />}
           {activeTool.id === 'fx-it' && <FXitPanel />}
+          {activeTool.id === 'icon-it' && <IconItPanel />}
           {activeTool.id === 'workstation' && <WorkstationPanel />}
         </ToolPanel>
       )}
