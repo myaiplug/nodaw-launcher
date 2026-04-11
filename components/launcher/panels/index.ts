@@ -9,9 +9,9 @@ export { ConvertItPanel, default as ConvertItPanelDefault } from './ConvertItPan
 export { TestItPanel, default as TestItPanelDefault } from './TestItPanel';
 export { SettingsPanel, default as SettingsPanelDefault } from './SettingsPanel';
 export { IconItPanel, default as IconItPanelDefault } from './IconItPanel';
+export { FXitPanel, default as FXitPanelDefault } from './FXitPanel';
+export { SplitItPanel, default as SplitItPanelDefault } from './SplitItPanel';
 export { 
-  SplitItPanel, 
   ScrewItPanel, 
-  FXitPanel, 
   WorkstationPanel 
 } from './PlaceholderPanels';

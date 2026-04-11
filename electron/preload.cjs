@@ -28,6 +28,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Sub-app Launching
   launchSubApp: (appName) => ipcRenderer.invoke('launch-subapp', appName),
   
+  // Check Sub-app Existence
+  checkSubAppExists: (appName) => ipcRenderer.invoke('check-subapp-exists', appName),
+  
   // Listeners
   onExportProgress: (callback) => {
     ipcRenderer.on('export-progress', (event, progress) => callback(progress));

@@ -1,12 +1,15 @@
 /**
  * FeatureTile3D.tsx
  * Interactive 3D feature tiles with parallax hover, glow effects, and lock states
+ * Includes usage tracking display for free tier users
  */
 
 import React, { useState, useCallback } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { useThemeStore } from './themeStore';
 import { useAudioFeedback } from './hooks/useAudioFeedback';
+import { useUsageStore } from './usageStore';
+import { useLicenseStore, LicenseTier } from './licenseStore';
 
 export type TierType = 'free' | 'pro' | 'pro_plus';
 
@@ -101,6 +104,16 @@ export const FeatureTile3D: React.FC<FeatureTileProps> = ({
   const isDark = theme === 'dark';
   const [isHovered, setIsHovered] = useState(false);
   const { playHover, playClick, playLock } = useAudioFeedback({ volume: 0.06 });
+  
+  // Usage tracking
+  const currentTier = useLicenseStore(state => state.getCurrentTier());
+  const isDevMode = useLicenseStore(state => state.isDevMode);
+  const usageRemaining = useUsageStore(state => state.getUsageRemaining(id));
+  const limits = useUsageStore(state => state.getLimits(id));
+  
+  // Show usage info only for non-pro users and when not in dev mode
+  const showUsageInfo = !isDevMode && currentTier === LicenseTier.FREE && !locked;
+  const isUsageExhausted = usageRemaining === 0 && limits.dailyLimit > 0;
   
   // 3D tilt effect with mouse tracking
   const x = useMotionValue(0);
@@ -270,6 +283,47 @@ export const FeatureTile3D: React.FC<FeatureTileProps> = ({
         >
           {tier === 'free' ? 'FREE' : tier === 'pro' ? 'PRO' : 'PRO+'}
         </span>
+        
+        {/* Usage indicator for free tier users */}
+        {showUsageInfo && limits.dailyLimit > 0 && (
+          <motion.div
+            className={`
+              absolute bottom-2 left-2 right-2 flex items-center justify-center gap-1
+              px-2 py-1 rounded-lg text-[8px] font-mono
+              ${isUsageExhausted 
+                ? isDark 
+                  ? 'bg-red-950/80 text-red-400 border border-red-500/40' 
+                  : 'bg-red-100 text-red-600 border border-red-300'
+                : isDark
+                  ? 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
+                  : 'bg-slate-100 text-slate-600 border border-slate-300'
+              }
+            `}
+            style={{ transform: 'translateZ(25px)' }}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {isUsageExhausted ? (
+              <>
+                <span>⏳</span>
+                <span>Daily limit reached</span>
+              </>
+            ) : (
+              <>
+                <span className={
+                  usageRemaining <= 1 
+                    ? 'text-red-400' 
+                    : usageRemaining <= 3 
+                      ? 'text-yellow-400' 
+                      : 'text-emerald-400'
+                }>
+                  {usageRemaining}
+                </span>
+                <span>/{limits.dailyLimit} today</span>
+              </>
+            )}
+          </motion.div>
+        )}
         
         {/* Status badge (beta, coming-soon) */}
         {statusBadge && (

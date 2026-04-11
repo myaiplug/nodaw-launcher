@@ -148,6 +148,30 @@ export const IconItPanel: React.FC = () => {
     const sizesToGenerate = ICON_SIZES.filter(s => selectedPlatforms.has(s.platform));
     const uniqueSizes = [...new Set(sizesToGenerate.map(s => s.size))];
     
+    // Preview container is 256x256
+    const previewSize = 256;
+    
+    // Calculate how bg-contain positions the image
+    const imgAspect = originalImage.width / originalImage.height;
+    let containedWidth: number, containedHeight: number;
+    
+    if (imgAspect > 1) {
+      // Wider than tall - fit to width
+      containedWidth = previewSize;
+      containedHeight = previewSize / imgAspect;
+    } else {
+      // Taller than wide - fit to height
+      containedHeight = previewSize;
+      containedWidth = previewSize * imgAspect;
+    }
+    
+    // The image is centered in the 256x256 box
+    const containedX = (previewSize - containedWidth) / 2;
+    const containedY = (previewSize - containedHeight) / 2;
+    
+    // Scale factor from original image to contained size
+    const containedScale = containedWidth / originalImage.width;
+    
     try {
       for (const size of uniqueSizes) {
         const canvas = document.createElement('canvas');
@@ -157,22 +181,43 @@ export const IconItPanel: React.FC = () => {
         
         if (!ctx) continue;
         
-        // Calculate crop area based on zoom and position
-        const scale = Math.min(originalImage.width, originalImage.height) / 256;
-        const cropSize = 256 / zoom * scale;
-        const cropX = (originalImage.width - cropSize) / 2 - (position.x * scale / zoom);
-        const cropY = (originalImage.height - cropSize) / 2 - (position.y * scale / zoom);
+        // Calculate what part of the preview is visible in the 256x256 square after zoom/pan
+        // The transform is: scale(zoom) translate(position.x/zoom, position.y/zoom)
+        // This means the center scales, then translates
+        
+        // After zoom, the visible region in "unzoomed preview coordinates" is:
+        const visibleWidth = previewSize / zoom;
+        const visibleHeight = previewSize / zoom;
+        
+        // The visible region's top-left in preview coordinates (before transform)
+        // Center of preview is at (128, 128), after translation by (position.x, position.y), 
+        // the center moves, so visible region shifts opposite
+        const visibleCenterX = previewSize / 2 - position.x;
+        const visibleCenterY = previewSize / 2 - position.y;
+        
+        const visibleLeft = visibleCenterX - visibleWidth / 2;
+        const visibleTop = visibleCenterY - visibleHeight / 2;
+        
+        // Now map this visible region back to original image coordinates
+        // The contained image starts at (containedX, containedY) in preview coords
+        const srcLeft = (visibleLeft - containedX) / containedScale;
+        const srcTop = (visibleTop - containedY) / containedScale;
+        const srcWidth = visibleWidth / containedScale;
+        const srcHeight = visibleHeight / containedScale;
         
         // Draw with anti-aliasing
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
+        // Fill with transparent background first
+        ctx.clearRect(0, 0, size, size);
+        
         ctx.drawImage(
           originalImage,
-          Math.max(0, cropX),
-          Math.max(0, cropY),
-          Math.min(originalImage.width, cropSize),
-          Math.min(originalImage.height, cropSize),
+          srcLeft,
+          srcTop,
+          srcWidth,
+          srcHeight,
           0,
           0,
           size,
@@ -312,9 +357,14 @@ export const IconItPanel: React.FC = () => {
                     cursor: isDragging ? 'grabbing' : 'grab'
                   }}
                 />
-                {/* Crop guide overlay */}
+                {/* Export area indicator - full box is exported */}
                 <div className="absolute inset-0 pointer-events-none">
-                  <div className={`absolute inset-4 border-2 border-dashed ${isDark ? 'border-white/30' : 'border-black/30'} rounded-lg`} />
+                  <div className={`absolute inset-0 border-2 ${isDark ? 'border-cyan-400/50' : 'border-cyan-500/50'} rounded-2xl`} />
+                  {/* Corner indicators */}
+                  <div className={`absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 ${isDark ? 'border-cyan-400' : 'border-cyan-500'} rounded-tl`} />
+                  <div className={`absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 ${isDark ? 'border-cyan-400' : 'border-cyan-500'} rounded-tr`} />
+                  <div className={`absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 ${isDark ? 'border-cyan-400' : 'border-cyan-500'} rounded-bl`} />
+                  <div className={`absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 ${isDark ? 'border-cyan-400' : 'border-cyan-500'} rounded-br`} />
                 </div>
               </>
             ) : (

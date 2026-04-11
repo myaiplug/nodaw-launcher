@@ -13,10 +13,11 @@ import AchievementBadge from './AchievementBadge';
 import ThemeToggle from './ThemeToggle';
 import DropZoneOverlay from './DropZoneOverlay';
 import { TOOLS, Tool } from './tools';
-import { useLicenseStore, LicenseTier } from './licenseStore';
+import { useLicenseStore, LicenseTier, useIsDevMode } from './licenseStore';
 import { useThemeStore } from './themeStore';
 import { useGlobalFileDrop } from './hooks/useFileDrop';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useDevModeShortcut } from './hooks/useDevModeShortcut';
 
 // Tool panels
 import { 
@@ -220,6 +221,10 @@ const LauncherApp: React.FC = () => {
   // License store
   const { getCurrentTier, canAccessTool, activateLicense } = useLicenseStore();
   const currentTier = getCurrentTier();
+  const isDevMode = useIsDevMode();
+  
+  // Secret dev mode keyboard shortcut (type 'devmode' to toggle)
+  useDevModeShortcut();
   
   // Global file drop handling
   const { isDragging } = useGlobalFileDrop({
@@ -338,6 +343,21 @@ const LauncherApp: React.FC = () => {
         className="fixed top-4 left-4 z-30 flex items-center gap-2"
       >
         <ThemeToggle />
+        {/* Dev mode indicator - only visible when active */}
+        {isDevMode && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className={`px-2 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider ${
+              isDark
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
+            }`}
+            title="Dev Mode Active - All tools unlocked"
+          >
+            🔓 DEV
+          </motion.div>
+        )}
         <motion.button
           onClick={() => setShowSettings(true)}
           whileHover={{ scale: 1.05 }}

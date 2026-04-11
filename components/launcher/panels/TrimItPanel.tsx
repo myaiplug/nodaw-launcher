@@ -347,11 +347,13 @@ export const TrimItPanel: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selection, setSelection] = useState<{ start: number; end: number } | null>(null);
+  const [history, setHistory] = useState<AudioBuffer[]>([]);
+  const [redoStack, setRedoStack] = useState<AudioBuffer[]>([]);
   
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const startTimeRef = useRef(0);
   const startOffsetRef = useRef(0);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | null>(null);
   
   useEffect(() => {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -372,12 +374,15 @@ export const TrimItPanel: React.FC = () => {
     setProgress(0);
     startOffsetRef.current = 0;
     setSamples(getSamplesFromBuffer(audioBuffer, 600));
+    // Clear history when loading new file
+    setHistory([]);
+    setRedoStack([]);
   };
   
   const stopAudio = useCallback(() => {
-    if (rafRef.current) {
+    if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
-      rafRef.current = undefined;
+      rafRef.current = null;
     }
     if (sourceRef.current) {
       try { 
@@ -401,6 +406,11 @@ export const TrimItPanel: React.FC = () => {
         sourceRef.current.disconnect();
       } catch (e) {}
       sourceRef.current = null;
+    }
+    
+    // Resume audio context if suspended (browser autoplay policy)
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
     }
     
     const source = audioContext.createBufferSource();
@@ -445,21 +455,59 @@ export const TrimItPanel: React.FC = () => {
   }, [audioContext, buffer, selection, stopAudio]);
   
   const handlePlayToggle = useCallback(() => {
-    if (isPlaying) {
+    // Use ref to avoid stale closure of isPlaying
+    if (sourceRef.current) {
       stopAudio();
     } else {
       playAudio();
     }
-  }, [isPlaying, stopAudio, playAudio]);
+  }, [stopAudio, playAudio]);
   
   const updateBuffer = useCallback((newBuffer: AudioBuffer) => {
     stopAudio();
+    // Save current buffer to history before updating
+    if (buffer) {
+      setHistory(prev => [...prev.slice(-19), buffer]); // Keep last 20 states
+      setRedoStack([]); // Clear redo stack on new edit
+    }
     setBuffer(newBuffer);
     setSamples(getSamplesFromBuffer(newBuffer, 600));
     setSelection(null);
     setProgress(0);
     startOffsetRef.current = 0;
-  }, [stopAudio]);
+  }, [stopAudio, buffer]);
+
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    stopAudio();
+    const prevBuffer = history[history.length - 1];
+    // Save current to redo stack
+    if (buffer) {
+      setRedoStack(prev => [...prev, buffer]);
+    }
+    setHistory(prev => prev.slice(0, -1));
+    setBuffer(prevBuffer);
+    setSamples(getSamplesFromBuffer(prevBuffer, 600));
+    setSelection(null);
+    setProgress(0);
+    startOffsetRef.current = 0;
+  }, [history, buffer, stopAudio]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    stopAudio();
+    const nextBuffer = redoStack[redoStack.length - 1];
+    // Save current to history
+    if (buffer) {
+      setHistory(prev => [...prev, buffer]);
+    }
+    setRedoStack(prev => prev.slice(0, -1));
+    setBuffer(nextBuffer);
+    setSamples(getSamplesFromBuffer(nextBuffer, 600));
+    setSelection(null);
+    setProgress(0);
+    startOffsetRef.current = 0;
+  }, [redoStack, buffer, stopAudio]);
   
   const handleCrop = useCallback(() => {
     if (!audioContext || !buffer || !selection) return;
@@ -515,8 +563,10 @@ export const TrimItPanel: React.FC = () => {
 
   // Keyboard shortcuts for audio editing
   useKeyboardShortcuts([
-    { key: ' ', handler: (e) => { e.preventDefault(); handlePlayToggle(); } },
-    { key: 's', ctrl: true, handler: (e) => { e.preventDefault(); handleDownload(); } },
+    { key: ' ', handler: () => handlePlayToggle() },
+    { key: 's', ctrl: true, handler: () => handleDownload() },
+    { key: 'z', ctrl: true, handler: () => handleUndo() },
+    { key: 'y', ctrl: true, handler: () => handleRedo() },
     { key: 'Delete', handler: () => selection && handleCut() },
     { key: 'Backspace', handler: () => selection && handleCut() },
     { key: 'Escape', handler: () => setSelection(null) },
@@ -680,11 +730,25 @@ export const TrimItPanel: React.FC = () => {
             Transport
           </h3>
           <div className="flex gap-3">
-            <Button onClick={handlePlayToggle} disabled={!buffer} variant="primary">
+            <button 
+              onClick={handlePlayToggle}
+              disabled={!buffer}
+              className={`px-4 py-2.5 font-mono text-xs uppercase tracking-widest rounded-lg transition-all duration-150 border disabled:opacity-40 disabled:cursor-not-allowed ${
+                isDark
+                  ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/30 hover:border-cyan-400'
+                  : 'bg-cyan-500/10 border-cyan-500/40 text-cyan-600 hover:bg-cyan-500/20 hover:border-cyan-500'
+              }`}
+            >
               {isPlaying ? '■ Stop' : '▶ Play'}
-            </Button>
+            </button>
             <Button onClick={handleReset} disabled={!buffer}>
               ⏮ Reset
+            </Button>
+            <Button onClick={handleUndo} disabled={history.length === 0}>
+              ↩ Undo
+            </Button>
+            <Button onClick={handleRedo} disabled={redoStack.length === 0}>
+              ↪ Redo
             </Button>
           </div>
         </div>

@@ -1,8 +1,8 @@
 {
   "name": "nodaw-studio",
   "private": true,
-  "version": "1.1.2",
-  "description": "Professional Audio Suite",
+  "version": "1.2.0",
+  "description": "Professional Audio Suite - All-in-One Offline Audio Tools",
   "author": "b33zy",
   "main": "electron/main.cjs",
   "type": "module",
@@ -12,17 +12,21 @@
     "preview": "vite preview",
     "electron": "electron . --user-data-dir=\"%TEMP%\\nodaw-user\" --disk-cache-dir=\"%TEMP%\\nodaw-cache\"",
     "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run electron\"",
-    "electron:build": "npm run build && electron-builder",
-    "electron:build:win": "npm run build && electron-builder --win",
-    "electron:build:mac": "npm run build && electron-builder --mac",
-    "electron:build:linux": "npm run build && electron-builder --linux",
-    "electron:build:all": "npm run build && electron-builder --win --mac --linux"
+    "prebuild:subapps": "node scripts/build-subapps.mjs",
+    "electron:build": "npm run build && npm run prebuild:subapps && electron-builder",
+    "electron:build:win": "npm run build && npm run prebuild:subapps && electron-builder --win",
+    "electron:build:mac": "npm run build && npm run prebuild:subapps && electron-builder --mac",
+    "electron:build:linux": "npm run build && npm run prebuild:subapps && electron-builder --linux",
+    "electron:build:all": "npm run build && npm run prebuild:subapps && electron-builder --win --mac --linux",
+    "electron:build:offline": "npm run build && npm run prebuild:subapps && electron-builder --win --config.nsis.oneClick=false"
   },
   "build": {
     "appId": "com.nodaw.studio",
     "productName": "NoDAW Studio Suite",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
@@ -31,9 +35,38 @@
       "nodaw.png",
       "nodaw.ico"
     ],
+    "extraResources": [
+      {
+        "from": "bundled-apps/TrimIt",
+        "to": "apps/TrimIt",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "bundled-apps/IconGenius",
+        "to": "apps/IconGenius",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "bundled-apps/StemSplit",
+        "to": "apps/StemSplit",
+        "filter": ["**/*"]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "**/ffmpeg*",
+      "**/python*"
+    ],
     "win": {
-      "target": "nsis",
-      "icon": "nodaw.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "nodaw.ico",
+      "legalTrademarks": "NoDAW Studios"
     },
     "mac": {
       "target": [
@@ -77,7 +110,17 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "installerIcon": "nodaw.ico",
+      "uninstallerIcon": "nodaw.ico",
+      "installerHeaderIcon": "nodaw.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NoDAW Studio",
+      "license": "LICENSE",
+      "uninstallDisplayName": "NoDAW Studio Suite"
     }
   },
   "dependencies": {

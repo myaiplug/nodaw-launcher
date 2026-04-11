@@ -26,6 +26,7 @@ interface LicenseState {
   license: License | null;
   isValidating: boolean;
   lastValidated: number | null;
+  isDevMode: boolean;  // Secret admin bypass
   
   // Actions
   getCurrentTier: () => LicenseTier;
@@ -33,6 +34,7 @@ interface LicenseState {
   activateLicense: (key: string) => Promise<{ success: boolean; error?: string }>;
   deactivateLicense: () => void;
   validateOnline: () => Promise<boolean>;
+  toggleDevMode: (secret: string) => boolean;  // Hidden admin toggle
 }
 
 // Tool access mapping
@@ -41,6 +43,9 @@ const TIER_ACCESS: Record<LicenseTier, string[]> = {
   [LicenseTier.PRO]: ['trim-it', 'convert-it', 'test-it', 'split-it', 'screw-it', 'fx-it'],
   [LicenseTier.PRO_PLUS]: ['*']  // Wildcard = all tools
 };
+
+// Secret dev mode passphrase - change this to your own secret!
+const DEV_SECRET = 'nodaw-dev-2026';
 
 // Simple hash for machine ID (client-side only)
 const generateMachineId = (): string => {
@@ -102,9 +107,14 @@ export const useLicenseStore = create<LicenseState>()(
       license: null,
       isValidating: false,
       lastValidated: null,
+      isDevMode: false,  // Admin bypass - not persisted
       
       getCurrentTier: () => {
-        const { license } = get();
+        const { license, isDevMode } = get();
+        
+        // Dev mode = full access
+        if (isDevMode) return LicenseTier.PRO_PLUS;
+        
         if (!license) return LicenseTier.FREE;
         
         // Check expiration
@@ -116,6 +126,11 @@ export const useLicenseStore = create<LicenseState>()(
       },
       
       canAccessTool: (toolId: string) => {
+        const { isDevMode } = get();
+        
+        // Dev mode bypasses all restrictions
+        if (isDevMode) return true;
+        
         const tier = get().getCurrentTier();
         const allowedTools = TIER_ACCESS[tier];
         
@@ -123,6 +138,16 @@ export const useLicenseStore = create<LicenseState>()(
         if (allowedTools.includes('*')) return true;
         
         return allowedTools.includes(toolId);
+      },
+      
+      toggleDevMode: (secret: string) => {
+        if (secret === DEV_SECRET) {
+          const current = get().isDevMode;
+          set({ isDevMode: !current });
+          console.log(current ? '🔒 Dev mode disabled' : '🔓 Dev mode enabled');
+          return true;
+        }
+        return false;
       },
       
       activateLicense: async (key: string) => {
@@ -201,5 +226,18 @@ export const useIsProPlusUser = () => {
   const tier = useLicenseStore(state => state.getCurrentTier());
   return tier === LicenseTier.PRO_PLUS;
 };
+export const useIsDevMode = () => useLicenseStore(state => state.isDevMode);
+
+// Secret dev mode activation via console
+// Usage: window.__nodaw_dev('nodaw-dev-2026')
+if (typeof window !== 'undefined') {
+  (window as any).__nodaw_dev = (secret: string) => {
+    const store = useLicenseStore.getState();
+    if (store.toggleDevMode(secret)) {
+      return store.isDevMode ? '🔓 All tools unlocked!' : '🔒 Dev mode disabled';
+    }
+    return '❌ Invalid secret';
+  };
+}
 
 export default useLicenseStore;

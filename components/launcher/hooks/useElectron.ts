@@ -81,6 +81,9 @@ export interface ElectronAPI {
   // Sub-app launching
   launchSubApp: (appName: string) => Promise<{ success: boolean; error?: string }>;
   
+  // Sub-app existence check
+  checkSubAppExists: (appName: string) => Promise<{ exists: boolean; path?: string; error?: string }>;
+  
   // Environment flag
   isElectron: boolean;
 }
@@ -198,7 +201,15 @@ export function useElectron() {
         return api.launchSubApp(appName);
       }
       return { success: false, error: 'Not available in browser' };
-    }
+    },
+    
+    // Check if sub-app exists
+    checkSubAppExists: async (appName: string) => {
+      if (api?.checkSubAppExists) {
+        return api.checkSubAppExists(appName);
+      }
+      return { exists: false, error: 'Not available in browser' };
+    },
   };
 }
 
