@@ -339,8 +339,30 @@ app.whenReady().then(() => {
         path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'StemSplit.exe'),
         path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'stemsplit.exe'),
         path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'bundle', 'msi', 'StemSplit.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'NoDAW Studio', 'StemSplit', 'StemSplit.exe'),
         path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'StemSplit', 'StemSplit.exe'),
         path.join(os.homedir(), 'AppData', 'Local', 'StemSplit', 'StemSplit.exe'),
+        path.join('C:', 'Program Files', 'StemSplit0.3.0', 'StemSplit.exe'),
+        path.join('C:', 'Program Files', 'StemSplit11', 'StemSplit.exe'),
+        path.join('C:', 'Program Files', 'StemSplit', 'StemSplit.exe'),
+      ];
+
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+      }
+
+      return null;
+    };
+
+    const getScrewAIDesktopExePath = () => {
+      const candidates = [
+        path.join(__dirname, '..', 'ScrewAI', 'dist_electron', 'win-unpacked', 'ScrewAI.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'NoDAW Studio', 'ScrewAI', 'ScrewAI.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'ScrewAI', 'ScrewAI.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'ScrewAI', 'ScrewAI.exe'),
+        path.join('C:', 'Program Files', 'ScrewAI', 'ScrewAI.exe'),
       ];
 
       for (const candidate of candidates) {
@@ -400,6 +422,18 @@ app.whenReady().then(() => {
         }
       }
 
+      if (appPath === 'ScrewAI') {
+        const desktopExe = getScrewAIDesktopExePath();
+        if (desktopExe) {
+          spawn(desktopExe, [], {
+            cwd: path.dirname(desktopExe),
+            detached: true,
+            stdio: 'ignore'
+          }).unref();
+          return { success: true };
+        }
+      }
+
       if (appInfo.type === 'dev') {
         // Development mode - use npm commands
         if (appPath === 'StemSplit') {
@@ -449,8 +483,30 @@ app.whenReady().then(() => {
         path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'StemSplit.exe'),
         path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'stemsplit.exe'),
         path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'bundle', 'msi', 'StemSplit.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'NoDAW Studio', 'StemSplit', 'StemSplit.exe'),
         path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'StemSplit', 'StemSplit.exe'),
         path.join(os.homedir(), 'AppData', 'Local', 'StemSplit', 'StemSplit.exe'),
+        path.join('C:', 'Program Files', 'StemSplit0.3.0', 'StemSplit.exe'),
+        path.join('C:', 'Program Files', 'StemSplit11', 'StemSplit.exe'),
+        path.join('C:', 'Program Files', 'StemSplit', 'StemSplit.exe'),
+      ];
+
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+      }
+
+      return null;
+    };
+
+    const getScrewAIDesktopExePath = () => {
+      const candidates = [
+        path.join(__dirname, '..', 'ScrewAI', 'dist_electron', 'win-unpacked', 'ScrewAI.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'NoDAW Studio', 'ScrewAI', 'ScrewAI.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'ScrewAI', 'ScrewAI.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'ScrewAI', 'ScrewAI.exe'),
+        path.join('C:', 'Program Files', 'ScrewAI', 'ScrewAI.exe'),
       ];
 
       for (const candidate of candidates) {
@@ -464,6 +520,13 @@ app.whenReady().then(() => {
 
     if (appName === 'StemSplit') {
       const desktopExe = getStemSplitDesktopExePath();
+      if (desktopExe) {
+        return { exists: true, path: desktopExe, mode: 'desktop-instance' };
+      }
+    }
+
+    if (appName === 'ScrewAI') {
+      const desktopExe = getScrewAIDesktopExePath();
       if (desktopExe) {
         return { exists: true, path: desktopExe, mode: 'desktop-instance' };
       }
