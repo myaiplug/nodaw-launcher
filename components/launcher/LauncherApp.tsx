@@ -13,10 +13,11 @@ import AchievementBadge from './AchievementBadge';
 import ThemeToggle from './ThemeToggle';
 import DropZoneOverlay from './DropZoneOverlay';
 import { TOOLS, Tool } from './tools';
-import { useLicenseStore, LicenseTier } from './licenseStore';
+import { useLicenseStore, LicenseTier, useIsDevMode } from './licenseStore';
 import { useThemeStore } from './themeStore';
 import { useGlobalFileDrop } from './hooks/useFileDrop';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useDevModeShortcut } from './hooks/useDevModeShortcut';
 
 // Tool panels
 import { 
@@ -27,6 +28,7 @@ import {
   SplitItPanel,
   ScrewItPanel,
   FXitPanel,
+  IconItPanel,
   WorkstationPanel,
   SettingsPanel
 } from './panels';
@@ -87,7 +89,7 @@ const OnboardingSequence: React.FC<{ onComplete: () => void }> = ({ onComplete }
             transition={{ delay: 0.1 }}
             className={`text-sm font-mono tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-600'}`}
           >
-            One App. Seven Powers. Zero Limits.
+            One App. Eight Tools. Zero Limits.
           </motion.p>
         )}
       </AnimatePresence>
@@ -219,18 +221,33 @@ const LauncherApp: React.FC = () => {
   // License store
   const { getCurrentTier, canAccessTool, activateLicense } = useLicenseStore();
   const currentTier = getCurrentTier();
+  const isDevMode = useIsDevMode();
+  
+  // Secret dev mode keyboard shortcut (type 'devmode' to toggle)
+  useDevModeShortcut();
   
   // Global file drop handling
   const { isDragging } = useGlobalFileDrop({
-    accept: ['audio/*', '.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac'],
+    accept: ['audio/*', 'image/*', '.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.png', '.jpg', '.jpeg', '.svg'],
     multiple: false,
     onDrop: (files) => {
       if (files.length > 0) {
-        setDroppedFile(files[0]);
-        // Auto-route to TrimIt for single audio files
-        const trimItTool = TOOLS.find(t => t.id === 'trim-it');
-        if (trimItTool && canAccessTool('trim-it')) {
-          setActiveTool(trimItTool);
+        const file = files[0];
+        setDroppedFile(file);
+        
+        // Route based on file type
+        if (file.type.startsWith('image/')) {
+          // Image files go to IconIt
+          const iconItTool = TOOLS.find(t => t.id === 'icon-it');
+          if (iconItTool && canAccessTool('icon-it')) {
+            setActiveTool(iconItTool);
+          }
+        } else {
+          // Audio files go to TrimIt
+          const trimItTool = TOOLS.find(t => t.id === 'trim-it');
+          if (trimItTool && canAccessTool('trim-it')) {
+            setActiveTool(trimItTool);
+          }
         }
       }
     },
@@ -256,6 +273,7 @@ const LauncherApp: React.FC = () => {
     { key: '5', handler: () => !activeTool && launchToolByIndex(4) },
     { key: '6', handler: () => !activeTool && launchToolByIndex(5) },
     { key: '7', handler: () => !activeTool && launchToolByIndex(6) },
+    { key: '8', handler: () => !activeTool && launchToolByIndex(7) },
   ]);
 
   // Launch tool by index
@@ -325,6 +343,21 @@ const LauncherApp: React.FC = () => {
         className="fixed top-4 left-4 z-30 flex items-center gap-2"
       >
         <ThemeToggle />
+        {/* Dev mode indicator - only visible when active */}
+        {isDevMode && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className={`px-2 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider ${
+              isDark
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
+            }`}
+            title="Dev Mode Active - All tools unlocked"
+          >
+            🔓 DEV
+          </motion.div>
+        )}
         <motion.button
           onClick={() => setShowSettings(true)}
           whileHover={{ scale: 1.05 }}
@@ -456,6 +489,7 @@ const LauncherApp: React.FC = () => {
           {activeTool.id === 'split-it' && <SplitItPanel />}
           {activeTool.id === 'screw-it' && <ScrewItPanel />}
           {activeTool.id === 'fx-it' && <FXitPanel />}
+          {activeTool.id === 'icon-it' && <IconItPanel />}
           {activeTool.id === 'workstation' && <WorkstationPanel />}
         </ToolPanel>
       )}

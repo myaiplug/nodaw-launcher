@@ -1,52 +1,54 @@
 import React, { forwardRef, useState } from 'react';
-import { Feature } from '../../types';
 
-// Individual feature tile, handles locked/unlocked, mini-preview, unlock animation
 interface FeatureTileProps {
-  feature: Feature;
-  unlocked: boolean;
-  onUnlock: () => void;
+  locked: boolean;
+  name: string;
+  onUnlock?: () => void;
   tabIndex?: number;
-  ariaPosinset?: number;
-  ariaSetsize?: number;
-  ariaLabel?: string;
+  'aria-posinset'?: number;
+  'aria-setsize'?: number;
+  'aria-label'?: string;
   role?: string;
 }
 
 const FeatureTile = forwardRef<HTMLDivElement, FeatureTileProps>(
   (
     {
-      return (
-        <div
-          ref={ref}
-          className={`feature-tile relative rounded-xl shadow-lg p-6 flex flex-col items-center justify-center transition-all duration-300 focus:outline-none ${
-            unlocked
-              ? 'bg-gradient-to-br from-green-200 to-green-50 text-green-900' // unlocked visual
-              : 'bg-gradient-to-br from-gray-800 to-gray-700 text-gray-200 opacity-80 cursor-pointer hover:scale-105 hover:shadow-2xl' // locked visual
-          }`}
-          tabIndex={tabIndex}
-          aria-label={ariaLabel}
-          role="listitem"
-          onClick={!unlocked ? onUnlock : undefined}
-          onKeyDown={handleKeyDown}
-        >
+      locked,
+      name,
+      onUnlock,
+      tabIndex,
+      'aria-posinset': ariaPosinset,
+      'aria-setsize': ariaSetsize,
+      'aria-label': ariaLabel,
+      role = 'listitem'
+    },
+    ref
+  ) => {
+    const [hover, setHover] = useState(false);
+    const [pressed, setPressed] = useState(false);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if ((e.key === 'Enter' || e.key === ' ') && locked && onUnlock) {
         onUnlock();
         e.preventDefault();
       }
     };
+
     return (
       <div
         ref={ref}
-        className={`feature-tile relative rounded-xl shadow-lg p-6 flex flex-col items-center justify-center transition-all duration-300 focus:outline-none ${unlocked
-          ? 'bg-gradient-to-br from-green-200 to-green-50 text-green-900' // unlocked visual
-          : 'bg-gradient-to-br from-gray-800 to-gray-700 text-gray-200 opacity-80 cursor-pointer hover:scale-105 hover:shadow-2xl' // locked visual
-          }`}
+        className={`feature-tile relative rounded-xl shadow-lg p-6 flex flex-col items-center justify-center transition-all duration-300 focus:outline-none ${
+          locked
+            ? 'bg-gradient-to-br from-gray-800 to-gray-700 text-gray-200 opacity-80 cursor-pointer hover:scale-105 hover:shadow-2xl'
+            : 'bg-gradient-to-br from-green-200 to-green-50 text-green-900'
+        }`}
         tabIndex={tabIndex}
         aria-posinset={ariaPosinset}
         aria-setsize={ariaSetsize}
         aria-label={ariaLabel}
         role={role}
-        onClick={!unlocked ? onUnlock : undefined}
+        onClick={locked ? onUnlock : undefined}
         onKeyDown={handleKeyDown}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => { setHover(false); setPressed(false); }}
@@ -54,17 +56,13 @@ const FeatureTile = forwardRef<HTMLDivElement, FeatureTileProps>(
         onMouseUp={() => setPressed(false)}
         style={{ outline: 'none' }}
       >
-        <div className="text-3xl mb-2" aria-hidden="true">
-          {feature.icon}
-        </div>
-        <div className="font-bold text-lg mb-1">{feature.name}</div>
-        <div className="text-sm opacity-80 text-center mb-2">{feature.description}</div>
-        {!unlocked && (
+        <div className="font-bold text-lg mb-1">{name}</div>
+        {locked && (
           <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 rounded-full px-2 py-1 text-xs font-bold animate-pulse">
             Locked
           </div>
         )}
-        {unlocked && (
+        {!locked && (
           <div className="absolute top-2 right-2 bg-green-400 text-green-900 rounded-full px-2 py-1 text-xs font-bold animate-bounce">
             Unlocked
           </div>

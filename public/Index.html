@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoDAW Launcher | Escape the Grid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(1deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .anti-gravity {
+            animation: float 6s ease-in-out infinite;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        body {
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0c 100%);
+            color: #e0e0e0;
+        }
+    </style>
+</head>
+<body class="min-h-screen overflow-x-hidden">
+
+    <nav class="p-6 flex justify-between items-center max-w-7xl mx-auto">
+        <div class="text-2xl font-bold tracking-tighter text-white">NoDAW<span class="text-blue-500">_</span></div>
+        <div class="space-x-8 text-sm uppercase tracking-widest text-gray-400">
+            <a href="#" class="hover:text-white transition">Specs</a>
+            <a href="#" class="hover:text-white transition">Manifesto</a>
+            <button class="glass px-6 py-2 rounded-full text-white hover:bg-white/10 transition">Download Beta</button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 pt-20 pb-32 flex flex-col items-center text-center">
+        <div class="anti-gravity mb-12">
+            <div class="glass w-64 h-64 md:w-80 md:h-80 rounded-3xl flex items-center justify-center shadow-2xl relative">
+                <div class="absolute inset-0 bg-blue-500/10 blur-3xl rounded-full"></div>
+                <h1 class="text-6xl font-black text-white">Λ</h1>
+            </div>
+        </div>
+
+        <h2 class="text-5xl md:text-7xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-500">
+            Anti-Gravity Audio.
+        </h2>
+        <p class="max-w-2xl text-xl text-gray-400 mb-10">
+            The NoDAW Launcher decouples your creativity from the screen. Zero distractions. Weightless processing. Pure sound.
+        </p>
+        
+        <div class="flex gap-4">
+            <button class="bg-white text-black px-8 py-4 rounded-lg font-bold hover:bg-blue-400 transition transform hover:scale-105">
+                Launch Environment
+            </button>
+            <button class="glass px-8 py-4 rounded-lg font-bold hover:bg-white/10 transition">
+                View Documentation
+            </button>
+        </div>
+    </main>
+
+    <section class="max-w-7xl mx-auto px-6 py-24 grid md:grid-cols-3 gap-8">
+        <div class="glass p-8 rounded-2xl">
+            <h3 class="text-blue-400 font-mono mb-2">01.</h3>
+            <h4 class="text-xl font-bold mb-4">Zero-Point Latency</h4>
+            <p class="text-gray-400">Our custom kernel ensures audio buffers remain steady even under heavy DSP loads.</p>
+        </div>
+        <div class="glass p-8 rounded-2xl">
+            <h3 class="text-blue-400 font-mono mb-2">02.</h3>
+            <h4 class="text-xl font-bold mb-4">Void Interface</h4>
+            <p class="text-gray-400">A minimalist launcher that hides the OS, leaving only you and your hardware instruments.</p>
+        </div>
+        <div class="glass p-8 rounded-2xl">
+            <h3 class="text-blue-400 font-mono mb-2">03.</h3>
+            <h4 class="text-xl font-bold mb-4">Orbital Sync</h4>
+            <p class="text-gray-400">Cloud backups that trigger only when you're idle, preventing CPU spikes during recording.</p>
+        </div>
+    </section>
+
+    <footer class="text-center py-12 text-gray-600 text-sm border-t border-white/5">
+        &copy; 2026 NoDAW Labs. Engineered for the Weightless.
+    </footer>
+
+</body>
+</html>

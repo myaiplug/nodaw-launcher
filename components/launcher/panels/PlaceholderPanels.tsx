@@ -100,21 +100,6 @@ const PlaceholderPanel: React.FC<PlaceholderProps> = ({
   );
 };
 
-// SplitIt - AI Stem Separation
-export const SplitItPanel: React.FC = () => (
-  <PlaceholderPanel
-    title="SplitIt - AI Stem Separation"
-    icon="🎵"
-    features={[
-      'Separate vocals, drums, bass, and other stems',
-      'Powered by deep learning (Demucs/Spleeter)',
-      'High-quality isolation with minimal artifacts',
-      'Batch processing support',
-      'Export individual stems or mix-minus'
-    ]}
-  />
-);
-
 // ScrewIt - Pitch & Tempo Warp
 export const ScrewItPanel: React.FC = () => (
   <PlaceholderPanel
@@ -126,21 +111,6 @@ export const ScrewItPanel: React.FC = () => (
       'Chopped & screwed presets',
       'Half-speed / Double-speed modes',
       'Real-time preview with waveform sync'
-    ]}
-  />
-);
-
-// FXit - One-Click Effects
-export const FXitPanel: React.FC = () => (
-  <PlaceholderPanel
-    title="FXit - One-Click Effects"
-    icon="✨"
-    features={[
-      'Professional effect chains in one click',
-      'Reverb, delay, compression presets',
-      'Genre-specific mixing templates',
-      'Before/after comparison',
-      'Customizable effect parameters'
     ]}
   />
 );
@@ -162,8 +132,6 @@ export const WorkstationPanel: React.FC = () => (
 );
 
 export default {
-  SplitItPanel,
   ScrewItPanel,
-  FXitPanel,
   WorkstationPanel
 };

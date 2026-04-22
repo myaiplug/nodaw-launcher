@@ -224,37 +224,107 @@ app.whenReady().then(() => {
 
   // === Sub-app Launching ===
   ipcMain.handle('launch-subapp', async (event, appPath) => {
-    const subAppPaths = {
-      'TrimIt': path.join(__dirname, '..', 'TrimIt'),
-      'IconGenius': path.join(__dirname, '..', 'IconGenius')
+    const isDev = !app.isPackaged;
+    
+    // Get the correct paths based on environment
+    const getSubAppPaths = (appName) => {
+      if (isDev) {
+        // Development: apps are in project root
+        return {
+          dir: path.join(__dirname, '..', appName),
+          exe: null, // Will use npm commands in dev
+          type: 'dev'
+        };
+      } else {
+        // Production: apps are bundled in resources/apps
+        const resourcesPath = process.resourcesPath;
+        const appDir = path.join(resourcesPath, 'apps', appName);
+        
+        const exeNames = {
+          'TrimIt': 'TrimIt.exe',
+          'IconGenius': 'Icon Genius.exe',
+          'StemSplit': 'StemSplit.exe'
+        };
+        
+        return {
+          dir: appDir,
+          exe: path.join(appDir, exeNames[appName] || `${appName}.exe`),
+          type: 'bundled'
+        };
+      }
     };
     
-    const appDir = subAppPaths[appPath];
-    if (!appDir) {
+    const appInfo = getSubAppPaths(appPath);
+    
+    if (!appInfo) {
       return { success: false, error: 'Unknown app' };
     }
     
     try {
-      // Try to launch the sub-app's electron build or dev server
-      const isDev = !app.isPackaged;
-      if (isDev) {
-        // In dev, run npm run dev in sub-app directory and open browser
-        const subProcess = spawn('npm', ['run', 'electron:dev'], {
-          cwd: appDir,
-          shell: true,
-          detached: true,
-          stdio: 'ignore'
-        });
-        subProcess.unref();
+      if (appInfo.type === 'dev') {
+        // Development mode - use npm commands
+        if (appPath === 'StemSplit') {
+          // StemSplit is Tauri
+          const subProcess = spawn('npm', ['run', 'tauri', 'dev'], {
+            cwd: appInfo.dir,
+            shell: true,
+            detached: true,
+            stdio: 'ignore'
+          });
+          subProcess.unref();
+        } else {
+          // Standard Electron apps
+          const subProcess = spawn('npm', ['run', 'electron:dev'], {
+            cwd: appInfo.dir,
+            shell: true,
+            detached: true,
+            stdio: 'ignore'
+          });
+          subProcess.unref();
+        }
       } else {
-        // In production, launch the built executable
-        const exeName = appPath === 'TrimIt' ? 'TrimIt.exe' : 'Icon Genius.exe';
-        const exePath = path.join(appDir, 'dist_electron', 'win-unpacked', exeName);
-        spawn(exePath, [], { detached: true, stdio: 'ignore' }).unref();
+        // Production mode - launch bundled executable
+        if (!fs.existsSync(appInfo.exe)) {
+          return { success: false, error: `App not found: ${appInfo.exe}` };
+        }
+        
+        spawn(appInfo.exe, [], { 
+          cwd: appInfo.dir,
+          detached: true, 
+          stdio: 'ignore' 
+        }).unref();
       }
+      
       return { success: true };
     } catch (e) {
       return { success: false, error: e.message };
+    }
+  });
+
+  // === Check Sub-app Exists ===
+  ipcMain.handle('check-subapp-exists', async (event, appName) => {
+    const isDev = !app.isPackaged;
+    
+    if (isDev) {
+      // Dev mode: check if directory exists
+      const devPath = path.join(__dirname, '..', appName);
+      const exists = fs.existsSync(devPath);
+      return { exists, path: devPath, mode: 'development' };
+    } else {
+      // Production: check bundled app
+      const resourcesPath = process.resourcesPath;
+      const appDir = path.join(resourcesPath, 'apps', appName);
+      
+      const exeNames = {
+        'TrimIt': 'TrimIt.exe',
+        'IconGenius': 'Icon Genius.exe',
+        'StemSplit': 'StemSplit.exe'
+      };
+      
+      const exePath = path.join(appDir, exeNames[appName] || `${appName}.exe`);
+      const exists = fs.existsSync(exePath);
+      
+      return { exists, path: exePath, mode: 'bundled' };
     }
   });
 

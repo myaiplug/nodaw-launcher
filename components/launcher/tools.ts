@@ -79,6 +79,16 @@ export const TOOLS: Tool[] = [
     route: '/test-it'
   },
   {
+    id: 'icon-it',
+    name: 'IconIt',
+    tagline: 'Icon Generator',
+    description: 'Generate app icons for all platforms instantly',
+    icon: '🎨',
+    tier: 'pro',
+    status: 'ready',
+    route: '/icon-it'
+  },
+  {
     id: 'workstation',
     name: 'NoDAW Workstation',
     tagline: 'Multitrack DAW',

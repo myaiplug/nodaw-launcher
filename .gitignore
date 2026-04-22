@@ -12,7 +12,16 @@ dist
 dist-ssr
 dist_electron
 release
+bundled-apps
 *.local
+
+# Sub-project copies (built separately)
+StemSplit/
+TrimIt/
+IconGenius/
+
+# Build artifacts  
+build/installer.nsh
 
 # Editor directories and files
 .vscode/*

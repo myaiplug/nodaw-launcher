@@ -1,28 +1,24 @@
 import React, { useEffect, useState, useRef } from 'react';
 import FeatureTile from './FeatureTile';
-  return (
-    <div
-      id="feature-grid"
-      className="feature-grid grid grid-cols-2 gap-6 p-4 focus:outline-none"
-      role="list"
-      aria-label="Feature list"
-      tabIndex={0}
-    >
-      {features.map((feature, idx) => (
-        <FeatureTile
-          key={feature.id}
-          feature={feature}
-          unlocked={unlockedFeatures.includes(feature.id)}
-          onUnlock={() => onUnlock(feature)}
-          ref={el => (tileRefs.current[idx] = el)}
-          tabIndex={0}
-          ariaLabel={feature.name + (unlockedFeatures.includes(feature.id) ? ' unlocked' : ' locked')}
-        />
-      ))}
-    </div>
+import { Feature } from '../../types';
 
+interface FeatureGridProps {
+  features: Feature[];
+  unlockedFeatures: string[];
+  onRequestUnlock: (featureName: string) => void;
+  reveal?: boolean;
+}
+
+const FeatureGrid: React.FC<FeatureGridProps> = ({
+  features,
+  unlockedFeatures,
+  onRequestUnlock,
+  reveal = false
+}) => {
   // Parallax effect
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const [revealed, setRevealed] = useState(0);
+
   useEffect(() => {
     const handleMouse = (e: MouseEvent) => {
       const x = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -32,6 +28,14 @@ import FeatureTile from './FeatureTile';
     window.addEventListener('mousemove', handleMouse);
     return () => window.removeEventListener('mousemove', handleMouse);
   }, []);
+
+  // Staggered reveal animation
+  useEffect(() => {
+    if (reveal && revealed < features.length) {
+      const timer = setTimeout(() => setRevealed(r => r + 1), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [reveal, revealed, features.length]);
 
   const tileRefs = useRef<(HTMLDivElement | null)[]>([]);
 
