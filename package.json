@@ -1,7 +1,7 @@
 {
   "name": "nodaw-studio",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.4.0",
   "description": "Professional Audio Suite - All-in-One Offline Audio Tools",
   "author": "b33zy",
   "main": "electron/main.cjs",
@@ -10,15 +10,18 @@
     "dev": "vite --port 3001 --strictPort",
     "build": "vite build",
     "preview": "vite preview",
+    "security:audit": "npm audit --omit=dev",
+    "security:release-check": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/release-safety-check.ps1",
     "electron": "electron . --user-data-dir=\"%TEMP%\\nodaw-user\" --disk-cache-dir=\"%TEMP%\\nodaw-cache\"",
     "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"npm run electron\"",
+    "prebuild:security": "npm run security:release-check",
     "prebuild:subapps": "node scripts/build-subapps.mjs",
-    "electron:build": "npm run build && npm run prebuild:subapps && electron-builder",
-    "electron:build:win": "npm run build && npm run prebuild:subapps && electron-builder --win",
-    "electron:build:mac": "npm run build && npm run prebuild:subapps && electron-builder --mac",
-    "electron:build:linux": "npm run build && npm run prebuild:subapps && electron-builder --linux",
-    "electron:build:all": "npm run build && npm run prebuild:subapps && electron-builder --win --mac --linux",
-    "electron:build:offline": "npm run build && npm run prebuild:subapps && electron-builder --win --config.nsis.oneClick=false"
+    "electron:build": "npm run prebuild:security && npm run build && npm run prebuild:subapps && electron-builder",
+    "electron:build:win": "npm run prebuild:security && npm run build && npm run prebuild:subapps && electron-builder --win",
+    "electron:build:mac": "npm run prebuild:security && npm run build && npm run prebuild:subapps && electron-builder --mac",
+    "electron:build:linux": "npm run prebuild:security && npm run build && npm run prebuild:subapps && electron-builder --linux",
+    "electron:build:all": "npm run prebuild:security && npm run build && npm run prebuild:subapps && electron-builder --win --mac --linux",
+    "electron:build:offline": "npm run prebuild:security && npm run build && npm run prebuild:subapps && electron-builder --win --config.nsis.oneClick=false"
   },
   "build": {
     "appId": "com.nodaw.studio",
@@ -39,17 +42,30 @@
       {
         "from": "bundled-apps/TrimIt",
         "to": "apps/TrimIt",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "bundled-apps/IconGenius",
         "to": "apps/IconGenius",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "bundled-apps/ScrewAI",
+        "to": "apps/ScrewAI",
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "bundled-apps/StemSplit",
         "to": "apps/StemSplit",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "asar": true,
@@ -62,7 +78,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "nodaw.ico",
@@ -72,11 +90,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "nodaw.png",
@@ -104,7 +128,10 @@
       ]
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "nodaw.png",
       "category": "Audio"
     },
@@ -126,6 +153,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "fft.js": "^4.0.4",
     "framer-motion": "^12.38.0",
     "lamejs": "^1.2.1",
     "libflacjs": "^5.4.0",

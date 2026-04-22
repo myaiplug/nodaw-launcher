@@ -1,12 +1,35 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const http = require('http');
+const os = require('os');
 
 let viteProcess = null;
 const DEV_PORT = 3001;
 const DEV_URL = `http://localhost:${DEV_PORT}`;
+
+function isSafeExternalUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' || parsed.protocol === 'mailto:';
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedNavigationUrl(rawUrl, isDev) {
+  try {
+    const parsed = new URL(rawUrl);
+    if (isDev) {
+      const devOrigin = new URL(DEV_URL).origin;
+      return parsed.origin === devOrigin;
+    }
+    return parsed.protocol === 'file:';
+  } catch {
+    return false;
+  }
+}
 
 function checkServerReady(url, maxAttempts = 30) {
   return new Promise((resolve) => {
@@ -29,9 +52,12 @@ function checkServerReady(url, maxAttempts = 30) {
 }
 
 async function ensureDevServer() {
-  // Check if server is already running
-  const ready = await checkServerReady(DEV_URL, 2);
-  if (ready) return true;
+  // Check if server is already running (give it more attempts)
+  const ready = await checkServerReady(DEV_URL, 10);
+  if (ready) {
+    console.log('[NoDAW] Dev server already running on', DEV_URL);
+    return true;
+  }
 
   console.log('[NoDAW] Starting Vite dev server...');
   viteProcess = spawn('npm', ['run', 'dev'], {
@@ -55,6 +81,8 @@ async function ensureDevServer() {
 }
 
 async function createWindow() {
+  const isDev = !app.isPackaged;
+
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -62,15 +90,16 @@ async function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      devTools: isDev,
       preload: path.join(__dirname, 'preload.cjs')
     },
     title: "NoDAW Studio Suite",
     frame: true,
     titleBarStyle: 'default'
   });
-
-  // Check if we are in development mode based on execution argument or environment
-  const isDev = !app.isPackaged;
 
   if (isDev) {
     // Auto-start dev server if needed
@@ -86,12 +115,91 @@ async function createWindow() {
     // Load the built index.html in production
     win.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  // Block untrusted window creation and route trusted links through the OS browser.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (isSafeExternalUrl(url)) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedNavigationUrl(url, isDev)) {
+      event.preventDefault();
+      if (isSafeExternalUrl(url)) {
+        shell.openExternal(url);
+      }
+    }
+  });
   
   win.setMenuBarVisibility(false); // Clean look
 }
 
 app.whenReady().then(() => {
+  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+    callback(false);
+  });
+
+  if (app.isPackaged) {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      const responseHeaders = {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; frame-src 'none'; worker-src 'self' blob:; child-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; upgrade-insecure-requests; block-all-mixed-content"
+        ],
+      };
+
+      callback({ cancel: false, responseHeaders });
+    });
+  }
+
   createWindow();
+
+  // === Get Sub-app Version ===
+  ipcMain.handle('get-subapp-version', async (_event, appName) => {
+    if (appName === 'StemSplit') {
+      const candidates = [
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'StemSplit', 'version.txt'),
+        path.join(os.homedir(), 'AppData', 'Local', 'StemSplit', 'version.txt'),
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'version.txt'),
+      ];
+
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          try {
+            const version = fs.readFileSync(candidate, 'utf-8').trim();
+            if (version) return { version };
+          } catch {
+            // Keep scanning candidates.
+          }
+        }
+      }
+
+      const exeCandidates = [
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'StemSplit', 'StemSplit.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'StemSplit', 'StemSplit.exe'),
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'StemSplit.exe'),
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'stemsplit.exe'),
+      ];
+
+      for (const exe of exeCandidates) {
+        if (fs.existsSync(exe)) {
+          try {
+            const out = spawnSync(exe, ['--version'], { encoding: 'utf-8', timeout: 3000 });
+            if (out.stdout) {
+              const version = out.stdout.trim().split(/\s+/).pop();
+              if (version) return { version };
+            }
+          } catch {
+            // Keep scanning candidates.
+          }
+        }
+      }
+    }
+
+    return { version: null };
+  });
   
   // === App Info ===
   ipcMain.handle('get-app-info', () => ({
@@ -223,8 +331,26 @@ app.whenReady().then(() => {
   });
 
   // === Sub-app Launching ===
-  ipcMain.handle('launch-subapp', async (event, appPath) => {
+  ipcMain.handle('launch-subapp', async (event, appPath, launchOptions = {}) => {
     const isDev = !app.isPackaged;
+
+    const getStemSplitDesktopExePath = () => {
+      const candidates = [
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'StemSplit.exe'),
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'stemsplit.exe'),
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'bundle', 'msi', 'StemSplit.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'StemSplit', 'StemSplit.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'StemSplit', 'StemSplit.exe'),
+      ];
+
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+      }
+
+      return null;
+    };
     
     // Get the correct paths based on environment
     const getSubAppPaths = (appName) => {
@@ -243,7 +369,8 @@ app.whenReady().then(() => {
         const exeNames = {
           'TrimIt': 'TrimIt.exe',
           'IconGenius': 'Icon Genius.exe',
-          'StemSplit': 'StemSplit.exe'
+          'StemSplit': 'StemSplit.exe',
+          'ScrewAI': 'ScrewAI.exe'
         };
         
         return {
@@ -261,6 +388,18 @@ app.whenReady().then(() => {
     }
     
     try {
+      if (appPath === 'StemSplit') {
+        const desktopExe = getStemSplitDesktopExePath();
+        if (desktopExe) {
+          spawn(desktopExe, [], {
+            cwd: path.dirname(desktopExe),
+            detached: true,
+            stdio: 'ignore'
+          }).unref();
+          return { success: true };
+        }
+      }
+
       if (appInfo.type === 'dev') {
         // Development mode - use npm commands
         if (appPath === 'StemSplit') {
@@ -304,6 +443,31 @@ app.whenReady().then(() => {
   // === Check Sub-app Exists ===
   ipcMain.handle('check-subapp-exists', async (event, appName) => {
     const isDev = !app.isPackaged;
+
+    const getStemSplitDesktopExePath = () => {
+      const candidates = [
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'StemSplit.exe'),
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'stemsplit.exe'),
+        path.join(__dirname, '..', 'StemSplit', 'src-tauri', 'target', 'release', 'bundle', 'msi', 'StemSplit.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'StemSplit', 'StemSplit.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'StemSplit', 'StemSplit.exe'),
+      ];
+
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+      }
+
+      return null;
+    };
+
+    if (appName === 'StemSplit') {
+      const desktopExe = getStemSplitDesktopExePath();
+      if (desktopExe) {
+        return { exists: true, path: desktopExe, mode: 'desktop-instance' };
+      }
+    }
     
     if (isDev) {
       // Dev mode: check if directory exists
@@ -318,7 +482,8 @@ app.whenReady().then(() => {
       const exeNames = {
         'TrimIt': 'TrimIt.exe',
         'IconGenius': 'Icon Genius.exe',
-        'StemSplit': 'StemSplit.exe'
+        'StemSplit': 'StemSplit.exe',
+        'ScrewAI': 'ScrewAI.exe'
       };
       
       const exePath = path.join(appDir, exeNames[appName] || `${appName}.exe`);
