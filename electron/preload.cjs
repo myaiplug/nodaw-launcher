@@ -7,6 +7,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose a safe, typed API to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+    // Get sub-app version
+    getSubAppVersion: (appName) => ipcRenderer.invoke('get-subapp-version', appName),
   // App Info
   getAppInfo: () => ipcRenderer.invoke('get-app-info'),
   getPlatform: () => process.platform,
@@ -26,15 +28,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportAudio: (options) => ipcRenderer.invoke('export-audio', options),
   
   // Sub-app Launching
-  launchSubApp: (appName) => ipcRenderer.invoke('launch-subapp', appName),
+  launchSubApp: (appName, options) => ipcRenderer.invoke('launch-subapp', appName, options),
   
   // Check Sub-app Existence
   checkSubAppExists: (appName) => ipcRenderer.invoke('check-subapp-exists', appName),
   
   // Listeners
   onExportProgress: (callback) => {
-    ipcRenderer.on('export-progress', (event, progress) => callback(progress));
-    return () => ipcRenderer.removeAllListeners('export-progress');
+    const listener = (_event, progress) => callback(progress);
+    ipcRenderer.on('export-progress', listener);
+    return () => ipcRenderer.removeListener('export-progress', listener);
   },
   
   // Check if running in Electron

@@ -22,6 +22,22 @@ IconGenius/
 
 # Build artifacts  
 build/installer.nsh
+ClipIT/build/
+TimeStretchX/build/
+RepairIT/build/
+ScrewAI/dist_electron/
+TrimIt/dist_electron/
+IconGenius/dist_electron/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.crt
 
 # Editor directories and files
 .vscode/*
