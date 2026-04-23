@@ -120,7 +120,8 @@ const TOOL_MEDIA: Record<string, ToolMedia> = {
     preview: 'assets/tools/trim-it/preview.mp4'
   },
   'convert-it': {
-    icon: 'assets/tools/convert-it/icon.ico'
+    icon: 'assets/tools/convert-it/icon.ico',
+    preview: 'assets/tools/convert-it/preview.mp4'
   },
   'fx-it': {
     icon: 'assets/tools/fx-it/icon.ico'
@@ -130,10 +131,11 @@ const TOOL_MEDIA: Record<string, ToolMedia> = {
     preview: 'assets/tools/test-it/preview.mp4'
   },
   'icon-it': {
-    icon: 'assets/tools/icon-it/icon.ico'
+    icon: 'assets/tools/icon-it/icon.ico',
+    preview: 'assets/tools/icon-it/preview.mp4'
   },
   workstation: {
-    icon: 'assets/tools/workstation/icon.png',
+    icon: 'assets/tools/workstation/icon.ico'
   }
 };
 

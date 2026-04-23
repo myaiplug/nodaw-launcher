@@ -328,9 +328,9 @@ body {
 
 body {
   background:
-    radial-gradient(circle at top, rgba(249, 115, 22, 0.12), transparent 32%),
+    radial-gradient(circle at top, rgba(139, 92, 246, 0.14), transparent 32%),
     radial-gradient(circle at 80% 20%, rgba(34, 211, 238, 0.12), transparent 28%),
-    linear-gradient(180deg, #09111f 0%, #0c1627 28%, #121d2b 52%, #efe5d1 100%);
+    linear-gradient(180deg, #09111f 0%, #0c1627 28%, #121d2b 52%, #162237 100%);
   font-family: var(--font-minimal);
 }
 
@@ -339,7 +339,7 @@ body {
 }
 
 .sales-page {
-  color: #f6f1e8;
+  color: var(--text-primary);
   min-height: 100vh;
 }
 
@@ -357,7 +357,8 @@ body {
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 236, 204, 0.72);
+  color: var(--accent-primary);
+  opacity: 0.85;
 }
 
 .sales-kicker::before {
@@ -436,7 +437,7 @@ body {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(246, 241, 232, 0.64);
+  color: var(--text-muted);
 }
 
 .hero-launcher__pulse {
@@ -614,7 +615,7 @@ body {
 .hero-launcher__tool-tagline {
   margin: 4px 0 0;
   font-size: 0.96rem;
-  color: rgba(246, 241, 232, 0.7);
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 
@@ -681,7 +682,7 @@ body {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(246, 241, 232, 0.48);
+  color: var(--text-muted);
   margin-bottom: 12px;
 }
 
@@ -764,7 +765,7 @@ body {
 }
 
 .hero-launcher__pad-label {
-  color: rgba(246, 241, 232, 0.7);
+  color: var(--text-secondary);
 }
 
 /* Action bar */
@@ -792,7 +793,7 @@ body {
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f8efe3;
+  color: var(--text-primary);
   background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(59, 130, 246, 0.12));
   border: 1px solid rgba(255, 255, 255, 0.18);
   transition: all 140ms ease;
@@ -830,7 +831,7 @@ body {
   max-width: 58ch;
   font-size: 1.08rem;
   line-height: 1.7;
-  color: rgba(246, 241, 232, 0.82);
+  color: var(--text-secondary);
 }
 
 .sales-actions {
@@ -863,12 +864,12 @@ body {
 
 .sales-button--primary {
   color: #07111f;
-  background: linear-gradient(135deg, #f59e0b 0%, #f8fafc 54%, #22d3ee 100%);
+  background: var(--gradient-primary);
   box-shadow: 0 18px 32px rgba(34, 211, 238, 0.16);
 }
 
 .sales-button--secondary {
-  color: #f8efe3;
+  color: var(--text-primary);
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.04);
 }
@@ -923,7 +924,7 @@ body {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(246, 241, 232, 0.58);
+  color: var(--text-muted);
 }
 
 .sales-statcard strong {
@@ -1047,7 +1048,7 @@ body {
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(246, 241, 232, 0.65);
+  color: var(--text-muted);
 }
 
 .tool-visual__icon {
@@ -1076,13 +1077,13 @@ body {
 .tool-story__hook {
   font-size: 1.14rem;
   line-height: 1.6;
-  color: #fff4e3;
+  color: var(--text-primary);
 }
 
 .tool-story__body {
   font-size: 1rem;
   line-height: 1.75;
-  color: rgba(246, 241, 232, 0.78);
+  color: var(--text-secondary);
 }
 
 .tool-story__meta,
@@ -1134,7 +1135,7 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #f59e0b, #22d3ee);
+  background: linear-gradient(135deg, #22d3ee, #8b5cf6);
 }
 
 .workflow-band,
@@ -1200,7 +1201,7 @@ body {
 .vst-advanced__header p {
   margin: 0;
   max-width: 62ch;
-  color: rgba(246, 241, 232, 0.78);
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 
@@ -1272,19 +1273,19 @@ body {
   font-size: 0.66rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(246, 241, 232, 0.65);
+  color: var(--text-muted);
 }
 
 .vst-advanced__line {
   margin: 0;
   font-weight: 600;
   line-height: 1.5;
-  color: #fff4e3;
+  color: var(--text-primary);
 }
 
 .vst-advanced__value {
   margin: 0;
-  color: rgba(246, 241, 232, 0.74);
+  color: var(--text-secondary);
   line-height: 1.6;
   font-size: 0.92rem;
 }
@@ -1303,7 +1304,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f8efe3;
+  color: var(--text-primary);
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), rgba(59, 130, 246, 0.12));
 }
@@ -1374,7 +1375,7 @@ body {
 }
 
 .pricing-card p {
-  color: rgba(246, 241, 232, 0.74);
+  color: var(--text-secondary);
 }
 
 .pricing-card ul {
@@ -1404,7 +1405,7 @@ body {
 }
 
 .footer-cta p {
-  color: rgba(246, 241, 232, 0.76);
+  color: var(--text-secondary);
   max-width: 56ch;
 }
 
