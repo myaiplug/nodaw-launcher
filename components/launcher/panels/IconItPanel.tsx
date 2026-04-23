@@ -53,7 +53,7 @@ export const IconItPanel: React.FC = () => {
   const [originalFileName, setOriginalFileName] = useState<string>('icon');
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set(['ios', 'android', 'windows', 'macos', 'web']));
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set(['ios', 'android', 'windows']));
   const [generatedIcons, setGeneratedIcons] = useState<Map<number, string>>(new Map());
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -343,35 +343,47 @@ export const IconItPanel: React.FC = () => {
 
   const filteredSizes = ICON_SIZES.filter(s => selectedPlatforms.has(s.platform));
 
+  // Retro bevel shadows
+  const raisedShadow = isDark
+    ? 'inset 1px 1px 0 #5a5a6a, inset -1px -1px 0 #0a0a0f'
+    : 'inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080';
+  const sunkenShadow = isDark
+    ? 'inset -1px -1px 0 #5a5a6a, inset 1px 1px 0 #0a0a0f'
+    : 'inset -1px -1px 0 #ffffff, inset 1px 1px 0 #808080';
+
   return (
     <div className={`h-full flex flex-col ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
       {/* Header */}
-      <div className={`px-6 py-4 border-b ${isDark ? 'border-slate-700/50' : 'border-slate-200'}`}>
+      <div
+        className={`px-5 py-3 border-b ${isDark ? 'border-slate-700/50 bg-slate-900/60' : 'border-slate-300 bg-slate-100'}`}
+        style={{ boxShadow: raisedShadow }}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-lg font-bold flex items-center gap-2">
               <span>🎨</span>
-              IconIt
+              <span className={`font-mono tracking-widest uppercase text-sm ${isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>IconIt</span>
             </h2>
-            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className={`text-xs font-mono ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
               Generate app icons for all platforms
             </p>
           </div>
-          
+
           {/* Platform toggles */}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 flex-wrap justify-end">
             {Object.entries(PLATFORM_COLORS).map(([platform, colors]) => (
               <button
                 key={platform}
                 onClick={() => togglePlatform(platform)}
+                style={{ boxShadow: selectedPlatforms.has(platform) ? sunkenShadow : raisedShadow }}
                 className={`
-                  px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider
-                  border transition-all
+                  px-2.5 py-1 text-xs font-mono uppercase tracking-wider
+                  border transition-none
                   ${selectedPlatforms.has(platform)
                     ? `${colors.bg} ${colors.text} ${colors.border}`
                     : isDark
-                      ? 'bg-slate-800/50 text-slate-500 border-slate-700/50'
-                      : 'bg-slate-100 text-slate-400 border-slate-200'
+                      ? 'bg-slate-800 text-slate-500 border-slate-600'
+                      : 'bg-slate-200 text-slate-500 border-slate-400'
                   }
                 `}
               >
@@ -384,15 +396,16 @@ export const IconItPanel: React.FC = () => {
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Image preview / upload */}
-        <div className="flex-1 p-6 flex flex-col items-center justify-center">
+        {/* Left: Image preview / upload — shifted upward via pt+pb asymmetry */}
+        <div className="flex-1 flex flex-col items-center justify-center pt-2 pb-14 px-6">
           <div
             ref={previewRef}
+            style={{ boxShadow: sunkenShadow }}
             className={`
-              relative w-64 h-64 rounded-2xl overflow-hidden
-              ${isDark ? 'bg-slate-800/50' : 'bg-slate-100'}
-              border-2 border-dashed
-              ${isDark ? 'border-slate-600' : 'border-slate-300'}
+              relative w-64 h-64 overflow-hidden
+              ${isDark ? 'bg-slate-800/60' : 'bg-slate-200'}
+              border-2
+              ${isDark ? 'border-slate-600' : 'border-slate-400'}
               cursor-pointer transition-all
               ${!imageSrc ? 'hover:border-cyan-500 hover:bg-cyan-500/5' : ''}
             `}
@@ -407,7 +420,7 @@ export const IconItPanel: React.FC = () => {
           >
             {imageSrc ? (
               <>
-                <div 
+                <div
                   className="absolute inset-0 bg-contain bg-center bg-no-repeat"
                   style={{
                     backgroundImage: `url(${imageSrc})`,
@@ -415,83 +428,54 @@ export const IconItPanel: React.FC = () => {
                     cursor: isDragging ? 'grabbing' : 'grab'
                   }}
                 />
-                {/* Export area indicator - full box is exported */}
                 <div className="absolute inset-0 pointer-events-none">
-                  <div className={`absolute inset-0 border-2 ${isDark ? 'border-cyan-400/50' : 'border-cyan-500/50'} rounded-2xl`} />
-                  {/* Corner indicators */}
-                  <div className={`absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 ${isDark ? 'border-cyan-400' : 'border-cyan-500'} rounded-tl`} />
-                  <div className={`absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 ${isDark ? 'border-cyan-400' : 'border-cyan-500'} rounded-tr`} />
-                  <div className={`absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 ${isDark ? 'border-cyan-400' : 'border-cyan-500'} rounded-bl`} />
-                  <div className={`absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 ${isDark ? 'border-cyan-400' : 'border-cyan-500'} rounded-br`} />
+                  <div className={`absolute inset-0 border-2 ${isDark ? 'border-cyan-400/40' : 'border-cyan-600/40'}`} />
+                  <div className={`absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 ${isDark ? 'border-cyan-400' : 'border-cyan-600'}`} />
+                  <div className={`absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 ${isDark ? 'border-cyan-400' : 'border-cyan-600'}`} />
+                  <div className={`absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 ${isDark ? 'border-cyan-400' : 'border-cyan-600'}`} />
+                  <div className={`absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 ${isDark ? 'border-cyan-400' : 'border-cyan-600'}`} />
                 </div>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full gap-3">
-                <div className={`w-16 h-16 rounded-full ${isDark ? 'bg-slate-700' : 'bg-slate-200'} flex items-center justify-center`}>
-                  <span className="text-3xl">📷</span>
+                <div className={`w-14 h-14 flex items-center justify-center border-2 ${isDark ? 'border-slate-600 bg-slate-700' : 'border-slate-400 bg-slate-300'}`}
+                  style={{ boxShadow: sunkenShadow }}>
+                  <span className="text-2xl">📷</span>
                 </div>
-                <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Drop image or click to upload
-                </p>
-                <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                  PNG, JPG, SVG supported
-                </p>
+                <p className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Drop image or click to upload</p>
+                <p className={`text-xs font-mono ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>PNG · JPG · SVG</p>
               </div>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleInputChange}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleInputChange} className="hidden" />
           </div>
 
           {/* Controls */}
           {imageSrc && (
             <div className="mt-4 flex flex-col items-center gap-3">
-              {/* Zoom slider */}
               <div className="flex items-center gap-3">
-                <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Zoom</span>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="3"
-                  step="0.1"
-                  value={zoom}
-                  onChange={(e) => setZoom(parseFloat(e.target.value))}
-                  className="w-32"
-                />
-                <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>ZOOM</span>
+                <input type="range" min="0.5" max="3" step="0.1" value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-28" />
+                <span className={`text-xs font-mono w-10 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   {(zoom * 100).toFixed(0)}%
                 </span>
               </div>
-
-              {/* Action buttons */}
               <div className="flex gap-2">
                 <button
                   onClick={clearImage}
-                  className={`
-                    px-4 py-2 rounded-lg text-sm font-medium
-                    ${isDark 
-                      ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' 
-                      : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-                    }
-                    transition-colors
-                  `}
+                  style={{ boxShadow: raisedShadow }}
+                  className={`px-4 py-1.5 text-xs font-mono uppercase border transition-none
+                    ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-500' : 'bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-400'}`}
                 >
                   Clear
                 </button>
                 <button
                   onClick={generateIcons}
                   disabled={isProcessing || filteredSizes.length === 0}
-                  className={`
-                    px-6 py-2 rounded-lg text-sm font-bold
-                    bg-gradient-to-r from-cyan-500 to-blue-500
-                    text-white shadow-lg shadow-cyan-500/30
-                    hover:shadow-cyan-500/50 transition-all
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                  `}
+                  style={{ boxShadow: isProcessing ? sunkenShadow : raisedShadow }}
+                  className={`px-6 py-1.5 text-xs font-mono uppercase font-bold border transition-none
+                    ${isDark ? 'bg-cyan-900 text-cyan-300 border-cyan-700 hover:bg-cyan-800' : 'bg-cyan-100 text-cyan-800 border-cyan-400 hover:bg-cyan-200'}
+                    disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isProcessing ? 'Generating...' : 'Generate Icons'}
                 </button>
@@ -499,17 +483,15 @@ export const IconItPanel: React.FC = () => {
             </div>
           )}
 
-          {/* Message */}
           <AnimatePresence>
             {message && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className={`
-                  mt-4 px-4 py-2 rounded-lg text-sm font-mono
-                  ${isDark ? 'bg-cyan-500/20 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}
-                `}
+                className={`mt-3 px-3 py-1.5 text-xs font-mono border
+                  ${isDark ? 'bg-slate-800 text-cyan-400 border-cyan-800' : 'bg-white text-cyan-700 border-cyan-400'}`}
+                style={{ boxShadow: sunkenShadow }}
               >
                 {message}
               </motion.div>
@@ -517,91 +499,102 @@ export const IconItPanel: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* Right: Generated icons list */}
-        <div className={`w-80 border-l ${isDark ? 'border-slate-700/50 bg-slate-900/30' : 'border-slate-200 bg-slate-50'} p-4 overflow-y-auto`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              Icon Sizes ({filteredSizes.length})
-            </h3>
-            {generatedIcons.size > 0 && (
-              <button
-                onClick={downloadAll}
-                className={`
-                  px-3 py-1 rounded text-xs font-medium
-                  bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
-                  hover:bg-emerald-500/30 transition-colors
-                `}
-              >
-                Download All
-              </button>
-            )}
+        {/* Right: Retro oldschool frame panel */}
+        <div
+          className={`w-72 flex flex-col border-l-2 ${isDark ? 'border-slate-700 bg-slate-900/50' : 'border-slate-400 bg-slate-100'}`}
+          style={{ boxShadow: isDark ? '-2px 0 0 #0a0a0f' : '-2px 0 0 #ffffff' }}
+        >
+          {/* Retro title bar */}
+          <div
+            className={`flex items-center justify-between px-3 py-1.5 border-b-2 flex-shrink-0
+              ${isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-400 bg-slate-300'}`}
+            style={{ boxShadow: raisedShadow }}
+          >
+            <span className={`text-xs font-mono uppercase tracking-widest font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              ▣ Icon Sizes
+            </span>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-mono ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                {filteredSizes.length} sizes
+              </span>
+              {generatedIcons.size > 0 && (
+                <button
+                  onClick={downloadAll}
+                  style={{ boxShadow: raisedShadow }}
+                  className={`px-2 py-0.5 text-xs font-mono uppercase border font-bold transition-none
+                    ${isDark ? 'bg-emerald-900/60 text-emerald-400 border-emerald-700 hover:bg-emerald-900' : 'bg-emerald-100 text-emerald-700 border-emerald-500 hover:bg-emerald-200'}`}
+                >
+                  ⬇ ZIP
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            {filteredSizes.map(({ name, size, platform }) => {
-              const colors = PLATFORM_COLORS[platform];
-              const hasIcon = generatedIcons.has(size);
-              
-              return (
-                <motion.div
-                  key={`${platform}-${size}-${name}`}
-                  layout
-                  className={`
-                    flex items-center gap-3 p-3 rounded-lg
-                    ${isDark ? 'bg-slate-800/50' : 'bg-white'}
-                    border ${colors.border}
-                  `}
-                >
-                  {/* Preview */}
-                  <div 
-                    className={`
-                      w-10 h-10 rounded-lg flex items-center justify-center
-                      ${colors.bg} ${colors.text}
-                      overflow-hidden
-                    `}
+          {/* Scrollable list — independent scroll, retro scrollbar */}
+          <div
+            className={`flex-1 overflow-y-auto p-2`}
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: isDark ? '#4a4a6a #1a1a2a' : '#999999 #dddddd',
+            }}
+          >
+            <style>{`
+              .retro-scroll::-webkit-scrollbar { width: 12px; }
+              .retro-scroll::-webkit-scrollbar-track { background: ${isDark ? '#1a1a2a' : '#d0d0d0'}; box-shadow: inset 1px 1px 0 ${isDark ? '#0a0a1a' : '#808080'}, inset -1px -1px 0 ${isDark ? '#3a3a4a' : '#ffffff'}; }
+              .retro-scroll::-webkit-scrollbar-thumb { background: ${isDark ? '#4a4a6a' : '#a0a0a0'}; box-shadow: inset 1px 1px 0 ${isDark ? '#6a6a8a' : '#ffffff'}, inset -1px -1px 0 ${isDark ? '#2a2a3a' : '#606060'}; }
+            `}</style>
+            <div className="retro-scroll space-y-1">
+              {filteredSizes.map(({ name, size, platform }) => {
+                const colors = PLATFORM_COLORS[platform];
+                const hasIcon = generatedIcons.has(size);
+
+                return (
+                  <div
+                    key={`${platform}-${size}-${name}`}
+                    className={`flex items-center gap-2 px-2 py-1.5 border
+                      ${isDark ? 'bg-slate-800/60 border-slate-700/80' : 'bg-white border-slate-300'}`}
+                    style={{ boxShadow: sunkenShadow }}
                   >
-                    {hasIcon ? (
-                      <img 
-                        src={generatedIcons.get(size)} 
-                        alt={name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs font-mono">{size}</span>
+                    {/* Preview thumbnail */}
+                    <div
+                      className={`w-8 h-8 flex-shrink-0 flex items-center justify-center border
+                        ${colors.bg} ${colors.text}
+                        ${isDark ? 'border-slate-600' : 'border-slate-400'} overflow-hidden`}
+                      style={{ boxShadow: sunkenShadow }}
+                    >
+                      {hasIcon ? (
+                        <img src={generatedIcons.get(size)} alt={name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-mono leading-none">{size >= 100 ? size : size}</span>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-mono truncate leading-tight ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                        {name}
+                      </p>
+                      <p className={`text-xs font-mono ${colors.text} opacity-80`}>
+                        {size}×{size}
+                      </p>
+                    </div>
+
+                    {/* Download button */}
+                    {hasIcon && (
+                      <button
+                        onClick={() => downloadIcon(size, name, platform)}
+                        style={{ boxShadow: raisedShadow }}
+                        className={`flex-shrink-0 px-1.5 py-0.5 text-xs font-mono border transition-none
+                          ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-600' : 'bg-slate-200 hover:bg-slate-300 text-slate-600 border-slate-400'}`}
+                        title="Download .ico"
+                      >
+                        ⬇
+                      </button>
                     )}
                   </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                      {name}
-                    </p>
-                    <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {size}×{size}px
-                    </p>
-                  </div>
-
-                  {/* Download button */}
-                  {hasIcon && (
-                    <button
-                      onClick={() => downloadIcon(size, name, platform)}
-                      className={`
-                        p-2 rounded-lg transition-colors
-                        ${isDark 
-                          ? 'hover:bg-slate-700 text-slate-400 hover:text-slate-200' 
-                          : 'hover:bg-slate-100 text-slate-500 hover:text-slate-700'
-                        }
-                      `}
-                      title="Download .ico"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                  )}
-                </motion.div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
