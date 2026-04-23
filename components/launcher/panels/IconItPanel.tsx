@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import JSZip from 'jszip';
 import { useThemeStore } from '../themeStore';
 
 interface IconSize {
@@ -49,6 +50,7 @@ export const IconItPanel: React.FC = () => {
   
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
+  const [originalFileName, setOriginalFileName] = useState<string>('icon');
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set(['ios', 'android', 'windows', 'macos', 'web']));
@@ -62,12 +64,46 @@ export const IconItPanel: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // Build ICO blob from a canvas (embeds PNG in ICO container - Vista+ format)
+  const canvasToIcoBlob = async (canvas: HTMLCanvasElement): Promise<Blob> => {
+    const pngBlob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => resolve(b!), 'image/png');
+    });
+    const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+    const headerSize = 6;
+    const dirEntrySize = 16;
+    const dataOffset = headerSize + dirEntrySize;
+    const buf = new ArrayBuffer(dataOffset + pngBytes.byteLength);
+    const view = new DataView(buf);
+    const bytes = new Uint8Array(buf);
+    // ICONDIR
+    view.setUint16(0, 0, true);  // reserved
+    view.setUint16(2, 1, true);  // type = 1 (ICO)
+    view.setUint16(4, 1, true);  // count = 1
+    // ICONDIRENTRY
+    const w = canvas.width;
+    const h = canvas.height;
+    bytes[6] = w >= 256 ? 0 : w;
+    bytes[7] = h >= 256 ? 0 : h;
+    bytes[8] = 0;  // color count
+    bytes[9] = 0;  // reserved
+    view.setUint16(10, 1, true);   // planes
+    view.setUint16(12, 32, true);  // bit depth
+    view.setUint32(14, pngBytes.byteLength, true);  // image data size
+    view.setUint32(18, dataOffset, true);            // image data offset
+    bytes.set(pngBytes, dataOffset);
+    return new Blob([buf], { type: 'image/x-icon' });
+  };
+
   // Handle file selection
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setMessage('Please select an image file');
       return;
     }
+    // Strip extension to use as base name
+    const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    setOriginalFileName(baseName);
     
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -228,7 +264,7 @@ export const IconItPanel: React.FC = () => {
       }
       
       setGeneratedIcons(newIcons);
-      setMessage(`Generated ${newIcons.size} icon sizes`);
+      setMessage(`Generated ${newIcons.size} icon sizes — ready to download as .ico`);
     } catch (error) {
       setMessage('Error generating icons');
     } finally {
@@ -236,48 +272,70 @@ export const IconItPanel: React.FC = () => {
     }
   };
 
-  // Download single icon
-  const downloadIcon = (size: number, name: string) => {
+  // Build safe filename: {originalName}_{size}x{size}_{platform_label}.ico
+  const buildFileName = (size: number, platform: string, label: string) => {
+    const platformLabel = label.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]/g, '');
+    return `${originalFileName}_${size}x${size}_${platformLabel}.ico`;
+  };
+
+  // Download single icon as .ico
+  const downloadIcon = async (size: number, name: string, platform: string) => {
     const dataUrl = generatedIcons.get(size);
     if (!dataUrl) return;
-    
+    // Reconstruct canvas to get ICO
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    const img = new Image();
+    await new Promise<void>((resolve) => { img.onload = () => resolve(); img.src = dataUrl; });
+    ctx.drawImage(img, 0, 0, size, size);
+    const icoBlob = await canvasToIcoBlob(canvas);
+    const url = URL.createObjectURL(icoBlob);
     const link = document.createElement('a');
-    link.download = `${name.replace(/\s+/g, '_')}_${size}x${size}.png`;
-    link.href = dataUrl;
+    link.download = buildFileName(size, platform, name);
+    link.href = url;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   // Download all icons as ZIP
   const downloadAll = async () => {
     if (generatedIcons.size === 0) return;
-    
-    setMessage('Preparing download...');
-    
-    // Simple multi-file download (for full ZIP support, would need JSZip)
-    const sizesToDownload = ICON_SIZES.filter(s => 
+    setMessage('Building ZIP...');
+    const zip = new JSZip();
+    const sizesToDownload = ICON_SIZES.filter(s =>
       selectedPlatforms.has(s.platform) && generatedIcons.has(s.size)
     );
-    
-    for (const { name, size } of sizesToDownload) {
+    for (const { name, size, platform } of sizesToDownload) {
       const dataUrl = generatedIcons.get(size);
       if (!dataUrl) continue;
-      
-      const link = document.createElement('a');
-      link.download = `${name.replace(/\s+/g, '_')}_${size}x${size}.png`;
-      link.href = dataUrl;
-      link.click();
-      
-      // Small delay between downloads
-      await new Promise(r => setTimeout(r, 100));
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      await new Promise<void>((resolve) => { img.onload = () => resolve(); img.src = dataUrl; });
+      ctx.drawImage(img, 0, 0, size, size);
+      const icoBlob = await canvasToIcoBlob(canvas);
+      const icoBuffer = await icoBlob.arrayBuffer();
+      zip.file(buildFileName(size, platform, name), icoBuffer);
     }
-    
-    setMessage('Download complete!');
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const link = document.createElement('a');
+    link.download = `${originalFileName}_icons.zip`;
+    link.href = url;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setMessage(`Downloaded ${sizesToDownload.length} icons as ${originalFileName}_icons.zip`);
   };
 
   // Clear image
   const clearImage = () => {
     setImageSrc(null);
     setOriginalImage(null);
+    setOriginalFileName('icon');
     setGeneratedIcons(new Map());
     setZoom(1);
     setPosition({ x: 0, y: 0 });
@@ -526,7 +584,7 @@ export const IconItPanel: React.FC = () => {
                   {/* Download button */}
                   {hasIcon && (
                     <button
-                      onClick={() => downloadIcon(size, name)}
+                      onClick={() => downloadIcon(size, name, platform)}
                       className={`
                         p-2 rounded-lg transition-colors
                         ${isDark 
@@ -534,7 +592,7 @@ export const IconItPanel: React.FC = () => {
                           : 'hover:bg-slate-100 text-slate-500 hover:text-slate-700'
                         }
                       `}
-                      title="Download"
+                      title="Download .ico"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
