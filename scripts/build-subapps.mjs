@@ -31,6 +31,12 @@ const SUBAPPS = {
     outputDir: 'dist_electron/win-unpacked',
     exeName: 'Icon Genius.exe'
   },
+  ScrewAI: {
+    sourceDir: join(rootDir, 'ScrewAI'),
+    buildCmd: 'npm run electron:build',
+    outputDir: 'dist_electron/win-unpacked',
+    exeName: 'ScrewAI.exe'
+  },
   StemSplit: {
     sourceDir: join(rootDir, 'StemSplit'),
     buildCmd: 'npm run tauri build',

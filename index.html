@@ -74,6 +74,48 @@
     </div>
     
     <div id="root"></div>
+    <script>
+      (function () {
+        var BOOT_TIMEOUT_MS = 7000;
+        var RETRY_KEY = 'nodaw_boot_retry_once';
+
+        function hideLoaderAndShowFallback() {
+          var loader = document.getElementById('nodaw-loader');
+          var root = document.getElementById('root');
+          var isFileProtocol = location.protocol === 'file:';
+
+          if (loader) {
+            loader.classList.add('hidden');
+          }
+
+          if (root && root.childElementCount === 0) {
+            var message = isFileProtocol
+              ? 'NoDAW cannot boot from file:// in Chrome. Start a local server and open http://127.0.0.1:4173/ (or run npm run preview).'
+              : 'NoDAW is taking longer than expected to boot. Please refresh this page.';
+
+            root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;color:#e2e8f0;background:#020617;font-family:Inter,system-ui,sans-serif;text-align:center;line-height:1.6;">' + message + '</div>';
+          }
+        }
+
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          var isBooted = !!(root && root.childElementCount > 0);
+
+          if (isBooted) {
+            sessionStorage.removeItem(RETRY_KEY);
+            return;
+          }
+
+          if (!sessionStorage.getItem(RETRY_KEY)) {
+            sessionStorage.setItem(RETRY_KEY, '1');
+            location.reload();
+            return;
+          }
+
+          hideLoaderAndShowFallback();
+        }, BOOT_TIMEOUT_MS);
+      })();
+    </script>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>

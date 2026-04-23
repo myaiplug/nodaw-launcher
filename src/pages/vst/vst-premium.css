@@ -1,0 +1,633 @@
+/* ========================================
+   VST PREMIUM SALES PAGES - DESIGN SYSTEM
+   ======================================== */
+
+:root {
+  /* Base Colors */
+  --vst-bg-void: #020408;
+  --vst-bg-primary: #05070A;
+  --vst-bg-secondary: #0B0F1A;
+  --vst-bg-elevated: #111827;
+  --vst-bg-surface: #1A1F2E;
+
+  /* Text */
+  --vst-text-primary: #EAF0FF;
+  --vst-text-secondary: #B8C5E0;
+  --vst-text-muted: #7A88A8;
+
+  /* Glass System */
+  --vst-glass-bg: rgba(255, 255, 255, 0.03);
+  --vst-glass-bg-hover: rgba(255, 255, 255, 0.06);
+  --vst-glass-border: rgba(255, 255, 255, 0.08);
+  --vst-glass-border-hover: rgba(255, 255, 255, 0.15);
+
+  /* Fonts */
+  --vst-font-display: 'Satoshi', 'Inter', -apple-system, sans-serif;
+  --vst-font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Spacing */
+  --vst-space-4: 1rem;
+  --vst-space-6: 1.5rem;
+  --vst-space-8: 2rem;
+  --vst-space-10: 2.5rem;
+  --vst-space-12: 3rem;
+  --vst-space-16: 4rem;
+  --vst-space-20: 5rem;
+
+  /* Shadows */
+  --vst-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --vst-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ========================================
+   TIMESTRETCHX THEME
+   ======================================== */
+.vst-timestretchx {
+  --vst-accent-primary: #FF9F43;
+  --vst-accent-primary-glow: #FFB366;
+  --vst-accent-secondary: #FF7043;
+  --vst-gradient-primary: linear-gradient(135deg, #FF9F43 0%, #FF6B6B 100%);
+  --vst-gradient-bg: linear-gradient(180deg, rgba(255, 159, 67, 0.1), rgba(255, 107, 107, 0.05));
+}
+
+/* ========================================
+   REPAIRAIT THEME
+   ======================================== */
+.vst-repairait {
+  --vst-accent-primary: #00D4FF;
+  --vst-accent-primary-glow: #33E0FF;
+  --vst-accent-secondary: #00B8E6;
+  --vst-gradient-primary: linear-gradient(135deg, #00D4FF 0%, #0099FF 100%);
+  --vst-gradient-bg: linear-gradient(180deg, rgba(0, 212, 255, 0.1), rgba(0, 153, 255, 0.05));
+}
+
+/* ========================================
+   CLIPIT THEME
+   ======================================== */
+.vst-clipit {
+  --vst-accent-primary: #FF6B9D;
+  --vst-accent-primary-glow: #FF8FB6;
+  --vst-accent-secondary: #FF5588;
+  --vst-gradient-primary: linear-gradient(135deg, #FF6B9D 0%, #FF3366 100%);
+  --vst-gradient-bg: linear-gradient(180deg, rgba(255, 107, 157, 0.1), rgba(255, 51, 102, 0.05));
+}
+
+/* ========================================
+   CHRONOS DYNAMIC EQ THEME
+   ======================================== */
+.vst-chronos {
+  --vst-accent-primary: #7B61FF;
+  --vst-accent-primary-glow: #9D8AFF;
+  --vst-accent-secondary: #6B4FE6;
+  --vst-gradient-primary: linear-gradient(135deg, #7B61FF 0%, #5A3FD5 100%);
+  --vst-gradient-bg: linear-gradient(180deg, rgba(123, 97, 255, 0.1), rgba(90, 63, 213, 0.05));
+}
+
+/* ========================================
+   SATURATEIT THEME
+   ======================================== */
+.vst-saturateit {
+  --vst-accent-primary: #FFB800;
+  --vst-accent-primary-glow: #FFC933;
+  --vst-accent-secondary: #FF9500;
+  --vst-gradient-primary: linear-gradient(135deg, #FFB800 0%, #FF8C00 100%);
+  --vst-gradient-bg: linear-gradient(180deg, rgba(255, 184, 0, 0.1), rgba(255, 140, 0, 0.05));
+}
+
+/* ========================================
+   BASE PAGE STRUCTURE
+   ======================================== */
+
+.vst-page {
+  background: var(--vst-bg-void);
+  color: var(--vst-text-primary);
+  font-family: var(--vst-font-display);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.vst-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--vst-space-8);
+}
+
+/* ========================================
+   HERO SECTION
+   ======================================== */
+
+.vst-hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--vst-bg-primary);
+}
+
+.vst-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.vst-hero__canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.vst-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, var(--vst-gradient-bg) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.2) 0%, transparent 60%);
+  z-index: 1;
+}
+
+.vst-hero__content {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+  text-align: center;
+  padding: var(--vst-space-16);
+  animation: hero-content-in 1s ease-out;
+}
+
+@keyframes hero-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vst-hero__badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: var(--vst-glass-bg);
+  border: 1px solid var(--vst-glass-border);
+  border-radius: 99px;
+  font-size: 0.875rem;
+  color: var(--vst-accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--vst-space-6);
+  backdrop-filter: blur(10px);
+  animation: badge-float 3s ease-in-out infinite;
+}
+
+@keyframes badge-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.vst-hero__title {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 var(--vst-space-8) 0;
+  background: linear-gradient(180deg, var(--vst-text-primary) 0%, var(--vst-text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.vst-hero__subtitle {
+  display: block;
+  font-size: 1.5rem;
+  color: var(--vst-accent-primary);
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.vst-hero__description {
+  font-size: 1.25rem;
+  color: var(--vst-text-secondary);
+  margin: var(--vst-space-8) 0 var(--vst-space-12) 0;
+  line-height: 1.8;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.vst-hero__ctas {
+  display: flex;
+  gap: var(--vst-space-4);
+  justify-content: center;
+  margin-bottom: var(--vst-space-16);
+  flex-wrap: wrap;
+}
+
+.vst-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--vst-space-6);
+  margin-top: var(--vst-space-16);
+  padding-top: var(--vst-space-16);
+  border-top: 1px solid var(--vst-glass-border);
+}
+
+.vst-stat {
+  text-align: center;
+}
+
+.vst-stat__value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--vst-accent-primary);
+}
+
+.vst-stat__label {
+  font-size: 0.875rem;
+  color: var(--vst-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.5rem;
+}
+
+/* ========================================
+   BUTTONS
+   ======================================== */
+
+.vst-btn {
+  padding: 0.875rem 2rem;
+  border-radius: 8px;
+  border: none;
+  font-family: var(--vst-font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  overflow: hidden;
+}
+
+.vst-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  transition: transform 600ms ease;
+}
+
+.vst-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.vst-btn--primary {
+  background: var(--vst-gradient-primary);
+  color: white;
+  box-shadow: 0 0 30px rgba(255, 159, 67, 0.3);
+}
+
+.vst-btn--primary:hover {
+  box-shadow: 0 0 60px rgba(255, 159, 67, 0.5);
+  transform: translateY(-2px);
+}
+
+.vst-btn--secondary {
+  background: var(--vst-glass-bg);
+  border: 1px solid var(--vst-glass-border);
+  color: var(--vst-text-primary);
+  backdrop-filter: blur(10px);
+}
+
+.vst-btn--secondary:hover {
+  background: var(--vst-glass-bg-hover);
+  border-color: var(--vst-glass-border-hover);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.vst-btn--large {
+  padding: 1.25rem 3rem;
+  font-size: 1.125rem;
+}
+
+/* ========================================
+   FEATURES SECTION
+   ======================================== */
+
+.vst-features {
+  padding: var(--vst-space-20) 0;
+  background: linear-gradient(180deg, var(--vst-bg-primary) 0%, var(--vst-bg-secondary) 100%);
+}
+
+.vst-section__title {
+  font-size: 3rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: var(--vst-space-16);
+  background: linear-gradient(180deg, var(--vst-text-primary) 0%, var(--vst-accent-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.vst-features__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--vst-space-8);
+}
+
+.vst-feature-card {
+  padding: var(--vst-space-8);
+  background: var(--vst-glass-bg);
+  border: 1px solid var(--vst-glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  transition: all 300ms ease;
+  cursor: pointer;
+}
+
+.vst-feature-card:hover {
+  background: var(--vst-glass-bg-hover);
+  border-color: var(--vst-accent-primary);
+  box-shadow: 0 0 30px rgba(255, 159, 67, 0.2);
+  transform: translateY(-8px);
+}
+
+.vst-feature-card__icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--vst-space-4);
+  display: block;
+}
+
+.vst-feature-card h3 {
+  font-size: 1.25rem;
+  margin: var(--vst-space-4) 0;
+  color: var(--vst-text-primary);
+}
+
+.vst-feature-card p {
+  color: var(--vst-text-secondary);
+  line-height: 1.6;
+}
+
+/* ========================================
+   SPECS SECTION
+   ======================================== */
+
+.vst-specs {
+  padding: var(--vst-space-20) 0;
+  background: var(--vst-bg-elevated);
+}
+
+.vst-specs__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--vst-space-8);
+}
+
+.vst-spec-item {
+  padding: var(--vst-space-6);
+  background: var(--vst-glass-bg);
+  border: 1px solid var(--vst-glass-border);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.vst-spec-item label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--vst-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.vst-spec-item value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--vst-accent-primary);
+  font-family: var(--vst-font-mono);
+}
+
+/* ========================================
+   PRICING SECTION
+   ======================================== */
+
+.vst-pricing {
+  padding: var(--vst-space-20) 0;
+  background: linear-gradient(180deg, var(--vst-bg-secondary) 0%, var(--vst-bg-primary) 100%);
+}
+
+.vst-pricing__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--vst-space-8);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.vst-pricing-card {
+  position: relative;
+  padding: var(--vst-space-10);
+  background: var(--vst-glass-bg);
+  border: 1px solid var(--vst-glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  transition: all 300ms ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.vst-pricing-card:hover {
+  border-color: var(--vst-accent-primary);
+  background: var(--vst-glass-bg-hover);
+}
+
+.vst-pricing-card--featured {
+  border: 2px solid var(--vst-accent-primary);
+  background: linear-gradient(135deg, rgba(255, 159, 67, 0.05), rgba(255, 107, 107, 0.02));
+  box-shadow: 0 0 60px rgba(255, 159, 67, 0.2);
+  transform: scale(1.05);
+}
+
+.vst-pricing-card__badge {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  padding: 0.5rem 1rem;
+  background: var(--vst-accent-primary);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vst-pricing-card h3 {
+  font-size: 1.5rem;
+  margin: var(--vst-space-8) 0 var(--vst-space-4) 0;
+  color: var(--vst-text-primary);
+}
+
+.vst-pricing-card__price {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--vst-accent-primary);
+  margin: var(--vst-space-4) 0;
+}
+
+.vst-pricing-card p {
+  color: var(--vst-text-secondary);
+  margin-bottom: var(--vst-space-6);
+}
+
+.vst-pricing-features {
+  list-style: none;
+  padding: 0;
+  margin: var(--vst-space-8) 0;
+  flex: 1;
+}
+
+.vst-pricing-features li {
+  padding: 0.5rem 0;
+  color: var(--vst-text-secondary);
+  font-size: 0.95rem;
+}
+
+.vst-pricing-card .vst-btn {
+  align-self: flex-start;
+  width: 100%;
+  margin-top: auto;
+  text-align: center;
+}
+
+/* ========================================
+   SOCIAL PROOF SECTION
+   ======================================== */
+
+.vst-social-proof {
+  padding: var(--vst-space-20) 0;
+  background: var(--vst-bg-primary);
+}
+
+.vst-testimonials {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--vst-space-8);
+}
+
+.vst-testimonial {
+  padding: var(--vst-space-8);
+  background: var(--vst-glass-bg);
+  border: 1px solid var(--vst-glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.vst-testimonial p {
+  font-style: italic;
+  color: var(--vst-text-secondary);
+  margin-bottom: var(--vst-space-6);
+  line-height: 1.8;
+}
+
+.vst-testimonial__author {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.vst-testimonial__author strong {
+  color: var(--vst-accent-primary);
+  font-weight: 600;
+}
+
+.vst-testimonial__author span {
+  font-size: 0.875rem;
+  color: var(--vst-text-muted);
+}
+
+/* ========================================
+   FOOTER CTA
+   ======================================== */
+
+.vst-footer-cta {
+  padding: var(--vst-space-20) 0;
+  background: linear-gradient(135deg, var(--vst-bg-elevated) 0%, var(--vst-bg-primary) 100%);
+  border-top: 1px solid var(--vst-glass-border);
+  text-align: center;
+}
+
+.vst-footer-cta h2 {
+  font-size: 2.5rem;
+  margin-bottom: var(--vst-space-4);
+  color: var(--vst-text-primary);
+}
+
+.vst-footer-cta p {
+  font-size: 1.125rem;
+  color: var(--vst-text-secondary);
+  margin-bottom: var(--vst-space-8);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+  .vst-hero__title {
+    font-size: 2.5rem;
+  }
+
+  .vst-hero__subtitle {
+    font-size: 1.125rem;
+  }
+
+  .vst-hero__description {
+    font-size: 1rem;
+  }
+
+  .vst-section__title {
+    font-size: 2rem;
+  }
+
+  .vst-hero__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .vst-pricing-card--featured {
+    transform: scale(1);
+  }
+
+  .vst-hero__ctas {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .vst-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .vst-container {
+    padding: 0 var(--vst-space-4);
+  }
+
+  .vst-hero__title {
+    font-size: 2rem;
+  }
+
+  .vst-section__title {
+    font-size: 1.5rem;
+  }
+
+  .vst-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "ScrewAI + FX Rack ",
+  "description": "Control and create beats in real time. Can even use with a MIDI controller. ",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "prompt": ""
+}

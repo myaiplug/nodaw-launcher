@@ -83,10 +83,10 @@ npm run electron:build:all    # All platforms
 
 ## 🔒 License Tiers
 
-| Tier | Tools Included |
-|------|----------------|
+| Tier     | Tools Included |
+|----------|----------------|
 | **Free** | TrimIt, ConvertIt, TestIt |
-| **Pro** | + SplitIt, ScrewIt, FXit, IconIt |
+| **Pro**  | + SplitIt, ScrewIt, FXit, IconIt |
 | **Pro+** | + NoDAW Workstation |
 
 ## 🤝 Contributing

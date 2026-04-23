@@ -2,6 +2,19 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "E:/Projects/1_StemSplit"
+		},
+		{
+			"path": "E:/Projects/screwai-+-fx-rack (1)"
+		},
+		{
+			"path": "J:/STOLEN/Bass"
 		}
-	]
+	],
+	"settings": {
+		"workbench.browser.enableChatTools": true,
+		"liveServer.settings.multiRootWorkspaceName": "NoDAW - 5 in 1"
+	}
 }

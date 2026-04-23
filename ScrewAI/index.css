@@ -1,0 +1,199 @@
+
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font-family: 'Google Sans', sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+  
+  /* Premium Dark Carbon Studio Background */
+  background-color: #050505;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(20, 20, 20, 0) 0%, rgba(0, 0, 0, 0.8) 100%),
+    linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111),
+    linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111);
+  background-position: 0 0, 0 0, 10px 10px;
+  background-size: 100% 100%, 20px 20px, 20px 20px;
+  
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Light Mode Override for Background */
+body.light-mode {
+  background-color: #eef2f5;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(200,200,200,0.2) 100%);
+}
+
+/* Theme Variables */
+:root {
+  /* DARK MODE (Default) */
+  --bg-app: transparent; /* Let body bg show through */
+  --bg-rack: #111;
+  --bg-rack-unit: linear-gradient(180deg, #4c4e52 0%, #2b2e33 100%);
+  --bg-drawer: linear-gradient(135deg, #2b2b2b 0%, #1a1a1a 100%);
+  --bg-controls: linear-gradient(180deg, #333 0%, #1a1a1a 100%);
+  
+  --border-main: #444;
+  --border-light: #666;
+  --border-dark: #111;
+  
+  --text-main: #ccc;
+  --text-dim: #888;
+  --text-highlight: #fff;
+  
+  --knob-face-start: #4a4a4a;
+  --knob-face-end: #1a1a1a;
+  --knob-rim-start: #666;
+  --knob-rim-end: #222;
+  --knob-indicator-off: #444;
+  --knob-tick-color: #666; /* Visible in dark mode */
+  
+  --shadow-rack: 0 20px 50px rgba(0,0,0,0.8);
+  --shadow-unit: 0 5px 10px rgba(0,0,0,0.5);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.1);
+  --shadow-btn: 0 2px 4px rgba(0,0,0,0.5);
+  
+  --tab-bg: linear-gradient(180deg, #e0e0e0 0%, #c0c0c0 100%);
+  --tab-text: #333;
+  --tab-bg-dark: linear-gradient(0deg, #2b2e33 0%, #4c4e52 100%);
+  --tab-text-dark: #aaa;
+
+  --accent-glow: #ffbd00; /* Sun/Gold glow */
+}
+
+body.light-mode {
+  /* LIGHT MODE (Clean & Pro) */
+  --bg-rack: #e0e0e0;
+  --bg-rack-unit: linear-gradient(180deg, #ffffff 0%, #dcdcdc 100%);
+  --bg-drawer: linear-gradient(135deg, #f8f8f8 0%, #eeeeee 100%);
+  --bg-controls: linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%);
+  
+  --border-main: #ccc;
+  --border-light: #fff;
+  --border-dark: #bbb;
+  
+  --text-main: #444;
+  --text-dim: #777;
+  --text-highlight: #000;
+  
+  --knob-face-start: #f8f8f8;
+  --knob-face-end: #d0d0d0;
+  --knob-rim-start: #ffffff;
+  --knob-rim-end: #a0a0a0;
+  --knob-indicator-off: #ccc;
+  --knob-tick-color: #bbb; /* Visible in light mode */
+  
+  --shadow-rack: 0 20px 40px rgba(163, 177, 198, 0.4), 0 10px 20px rgba(163, 177, 198, 0.2);
+  --shadow-unit: 0 4px 8px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.8);
+  --shadow-btn: 0 2px 5px rgba(163, 177, 198, 0.6);
+  
+  --tab-bg: linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%);
+  --tab-text: #222;
+  --tab-bg-dark: linear-gradient(0deg, #e0e0e0 0%, #f0f0f0 100%); /* Inverted for bottom tabs */
+  --tab-text-dark: #444;
+
+  --accent-glow: #5e60ce; /* Moon/Blue glow */
+}
+
+/* --- THEMES --- */
+
+/* Woodgrain */
+.theme-wood {
+  --bg-rack: #2a1d15;
+  --bg-rack-unit: linear-gradient(180deg, #5c4033 0%, #3e2b22 100%);
+  --bg-controls: #3e2b22;
+  --border-main: #2a1b12;
+  --border-light: #8b5a2b;
+  --border-dark: #1a0f0a;
+  --text-main: #d2b48c;
+  --text-dim: #8b5a2b;
+  --knob-rim-start: #8b4513;
+  --knob-rim-end: #3e2b22;
+}
+.theme-wood .rack-unit {
+   /* Simple wood texture effect */
+   background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);
+}
+
+/* Black Plastic */
+.theme-plastic {
+  --bg-rack: #050505;
+  --bg-rack-unit: #1a1a1a;
+  --bg-controls: #1a1a1a;
+  --border-main: #222;
+  --border-light: #333;
+  --border-dark: #000;
+  --text-main: #888;
+  --text-dim: #444;
+  --shadow-unit: inset 0 0 20px #000;
+}
+.theme-plastic .rack-unit {
+   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* Blue Tech */
+.theme-blue {
+  --bg-rack: #000810;
+  --bg-rack-unit: linear-gradient(180deg, #0a1f30 0%, #05101a 100%);
+  --bg-controls: #0a1f30;
+  --border-main: #0d2b42;
+  --border-light: #1c4566;
+  --border-dark: #000;
+  --text-main: #8ab6d6;
+  --text-dim: #3a5c75;
+  --accent-glow: #00e5ff;
+}
+
+/* Green Mil-Spec */
+.theme-green {
+  --bg-rack: #0a100a;
+  --bg-rack-unit: linear-gradient(180deg, #1a261a 0%, #0f140f 100%);
+  --bg-controls: #1a261a;
+  --border-main: #1f331f;
+  --border-light: #3d5c3d;
+  --border-dark: #000;
+  --text-main: #8abd8a;
+  --text-dim: #3a5c3a;
+  --accent-glow: #00ff00;
+}
+
+/* Purple Synth */
+.theme-purple {
+  --bg-rack: #100a10;
+  --bg-rack-unit: linear-gradient(180deg, #261a26 0%, #140f14 100%);
+  --bg-controls: #261a26;
+  --border-main: #331f33;
+  --border-light: #5c3d5c;
+  --border-dark: #000;
+  --text-main: #bd8abd;
+  --text-dim: #5c3a5c;
+  --accent-glow: #ff00ff;
+}
+
+/* Red Industrial */
+.theme-red {
+  --bg-rack: #100505;
+  --bg-rack-unit: linear-gradient(180deg, #261010 0%, #140808 100%);
+  --bg-controls: #261010;
+  --border-main: #331010;
+  --border-light: #5c2020;
+  --border-dark: #000;
+  --text-main: #bd8a8a;
+  --text-dim: #5c3a3a;
+  --accent-glow: #ff3333;
+}
+
+
+body.dragging {
+  cursor: ns-resize;
+}
+body.dragging * {
+  user-select: none;
+  pointer-events: none;
+}

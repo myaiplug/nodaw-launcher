@@ -1,7 +1,13 @@
 
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import LauncherApp from './components/launcher/LauncherApp';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import SalesLandingPage from './components/landing/SalesLandingPage';
+import TimeStretchXPage from './src/pages/vst/TimeStretchXPage';
+import RepairITPage from './src/pages/vst/RepairITPage';
+import ClipITPage from './src/pages/vst/ClipITPage';
+import ChronosDynamicEQPage from './src/pages/vst/ChronosDynamicEQPage';
+import SaturateITPage from './src/pages/vst/SaturateITPage';
 
 // Track when page started loading
 const loadStart = Date.now();
@@ -26,8 +32,25 @@ const AppWithLoaderHide: React.FC = () => {
   useEffect(() => {
     hideLoader();
   }, []);
-  
-  return <LauncherApp />;
+
+  return (
+    <HashRouter>
+      <Routes>
+        {/* Main landing page */}
+        <Route path="/" element={<SalesLandingPage />} />
+        
+        {/* VST Product Pages */}
+        <Route path="/vst/timestretchx" element={<TimeStretchXPage />} />
+        <Route path="/vst/repairait" element={<RepairITPage />} />
+        <Route path="/vst/clipit" element={<ClipITPage />} />
+        <Route path="/vst/chronos-dynamic-eq" element={<ChronosDynamicEQPage />} />
+        <Route path="/vst/saturateit" element={<SaturateITPage />} />
+        
+        {/* Fallback - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </HashRouter>
+  );
 };
 
 const rootElement = document.getElementById('root');

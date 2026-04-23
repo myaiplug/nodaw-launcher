@@ -186,6 +186,20 @@ npm run tauri dev
 
 ## Release & Distribution
 
+### Installer Downloads
+
+| Product | Platform | Download Link | Status |
+|---------|----------|---------------|--------|
+| **NoDAW Launcher** | Windows / macOS / Linux | https://github.com/myaiplug/nodaw-launcher/releases | ⚠️ No release published yet |
+| **StemSplit Desktop** | Windows (.exe) | https://github.com/myaiplug/StemSplit1/releases/latest | ✅ Available |
+| **StemSplit Desktop** | macOS (.dmg) | https://github.com/myaiplug/StemSplit1/releases/latest | ✅ Available |
+
+> **NoDAW Launcher** has no published releases yet. To publish one, tag a commit and push — the `build.yml` CI workflow will build and attach the installers automatically:
+> ```bash
+> git tag v1.0.0
+> git push origin v1.0.0
+> ```
+
 ### Build Artifacts Hosting
 - GitHub Releases: https://github.com/myaiplug/nodaw-launcher/releases
 - GitHub Releases: https://github.com/myaiplug/StemSplit1/releases

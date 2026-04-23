@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+  <head>
+        <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.sh/@google/genai@^1.0.0",
+          "lit/": "https://esm.sh/lit@^3.3.0/",
+          "lit": "https://esm.sh/lit@^3.3.0"
+        }
+      }
+    </script>
+  <link rel="stylesheet" href="/index.css">
+  <style>
+    .back-to-launcher {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: rgba(30, 30, 50, 0.9);
+      border: 1px solid rgba(192, 132, 252, 0.3);
+      border-radius: 8px;
+      color: #c084fc;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+      -webkit-app-region: no-drag;
+    }
+    .back-to-launcher:hover {
+      background: rgba(192, 132, 252, 0.2);
+      border-color: rgba(192, 132, 252, 0.5);
+      transform: translateX(-2px);
+    }
+    .back-to-launcher svg {
+      width: 16px;
+      height: 16px;
+    }
+  </style>
+</head>
+  <body>
+    <button class="back-to-launcher" id="backBtn" title="Back to NoDAW Launcher">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back
+    </button>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      // Wait for DOM to be ready
+      document.addEventListener('DOMContentLoaded', () => {
+        const backBtn = document.getElementById('backBtn');
+        if (!backBtn) {
+          console.error('Back button not found!');
+          return;
+        }
+        
+        backBtn.addEventListener('click', () => {
+          console.log('Back button clicked');
+          
+          // Try electronAPI first (exposed via preload)
+          if (window.electronAPI && window.electronAPI.backToLauncher) {
+            console.log('Using electronAPI');
+            window.electronAPI.backToLauncher();
+            return;
+          }
+          
+          // Try direct require
+          if (typeof require !== 'undefined') {
+            try {
+              const { ipcRenderer } = require('electron');
+              console.log('Using direct require/ipcRenderer');
+              ipcRenderer.send('back-to-launcher');
+              return;
+            } catch (e) {
+              console.error('IPC error:', e);
+            }
+          }
+          
+          // Fallback: just close
+          console.log('Fallback: closing window');
+          window.close();
+        });
+        
+        console.log('Back button handler attached');
+      });
+    </script>
+  </body>
+</html>
