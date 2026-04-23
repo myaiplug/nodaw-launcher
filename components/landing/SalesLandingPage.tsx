@@ -139,7 +139,12 @@ const TOOL_MEDIA: Record<string, ToolMedia> = {
   }
 };
 
-const assetUrl = (relativePath: string): string => `${import.meta.env.BASE_URL}${relativePath}`;
+const LANDING_MEDIA_REV = '2026-04-23-1';
+
+const assetUrl = (relativePath: string): string => {
+  const separator = relativePath.includes('?') ? '&' : '?';
+  return `${import.meta.env.BASE_URL}${relativePath}${separator}v=${LANDING_MEDIA_REV}`;
+};
 
 const getScreenshotCandidates = (primaryScreenshot: string): string[] => {
   const candidates = [primaryScreenshot];
