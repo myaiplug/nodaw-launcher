@@ -1,0 +1,23 @@
+# NoDAW Studio Suite
+
+> AI-powered audio workflow suite and VST product showcase.
+
+## Canonical URL
+- https://myaiplug.github.io/nodaw-launcher/
+
+## Product Landing Pages (SPA hash routes)
+- https://myaiplug.github.io/nodaw-launcher/#/vst/timestretchx
+- https://myaiplug.github.io/nodaw-launcher/#/vst/repairait
+- https://myaiplug.github.io/nodaw-launcher/#/vst/clipit
+- https://myaiplug.github.io/nodaw-launcher/#/vst/chronos-dynamic-eq
+- https://myaiplug.github.io/nodaw-launcher/#/vst/saturateit
+
+## Primary Capabilities
+- AI stem separation
+- Pitch and tempo manipulation
+- Audio repair and restoration
+- Clipping and loudness processing
+- Dynamic EQ and saturation workflows
+
+## Repository
+- https://github.com/myaiplug/nodaw-launcher
