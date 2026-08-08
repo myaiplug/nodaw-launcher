@@ -4,7 +4,7 @@
   "version": "1.4.0",
   "description": "Professional Audio Suite - All-in-One Offline Audio Tools",
   "author": "b33zy",
-  "main": "electron/main.cjs",
+  "main": "electron/bootstrap.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite --port 3001 --strictPort",
