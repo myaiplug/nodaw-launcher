@@ -12,6 +12,9 @@ interface UnlockModalProps {
   featureName: string;
   featureTier: Exclude<TierType, 'free'>;
   onClose: () => void;
+  featureId?: string;
+  onUnlock?: (key: string) => Promise<boolean>;
+  onPurchase?: () => void;
 }
 
 export const ShatterUnlockModal: React.FC<UnlockModalProps> = ({
