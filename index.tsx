@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import SalesLandingPage from './components/landing/SalesLandingPage';
 import LauncherApp from './components/launcher/LauncherApp';
+import { useLicenseStore } from './components/launcher/licenseStore';
 import TimeStretchXPage from './src/pages/vst/TimeStretchXPage';
 import RepairITPage from './src/pages/vst/RepairITPage';
 import ClipITPage from './src/pages/vst/ClipITPage';
@@ -51,6 +52,15 @@ const AppWithLoaderHide: React.FC = () => {
     const onHashChange = () => setPath(normalizeHashPath());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  useEffect(() => {
+    const state = useLicenseStore.getState();
+    if (!state.pendingUpgrade) return;
+
+    // A checkout can outlive the app process. Resume verification on startup so
+    // a completed purchase unlocks without requiring the customer to repeat it.
+    void state.waitForPendingUpgrade(90_000);
   }, []);
 
   return renderRoute(path);
