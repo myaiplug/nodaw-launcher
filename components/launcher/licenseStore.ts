@@ -156,16 +156,13 @@ export const useLicenseStore = create<LicenseState>()(
           const query = new URLSearchParams({ claimId: pending.claimId, claimToken: pending.claimToken });
           const data = await jsonFetch(`/api/upgrades/status?${query.toString()}`);
           const claim = data.claim;
-          if (claim.status !== 'fulfilled' || !claim.licenseKey) return false;
+          if (claim.status !== 'fulfilled' || !claim.licenseKey || !claim.email) return false;
 
           set({ upgradeStatus: 'activating', upgradeError: null });
-          // The claim is proof that this app instance initiated the paid checkout.
-          // Store the recovery credential and buyer email will be learned on the
-          // next online validation/restore flow if necessary.
           const license: License = {
             tier: tierFromPlan(claim.plan),
             key: claim.licenseKey,
-            email: '',
+            email: String(claim.email).trim().toLowerCase(),
             features: [],
             activatedAt: Date.now(),
             expiresAt: null,
@@ -233,10 +230,6 @@ export const useLicenseStore = create<LicenseState>()(
       validateOnline: async () => {
         const { license } = get();
         if (!license) return false;
-        // Automatically activated claim receipts may not yet have an email in
-        // local state; they remain locally active until a restore/identity sync
-        // flow is completed. Manual activations are revalidated online.
-        if (!license.email) return true;
         try {
           const result = await jsonFetch('/api/entitlements/validate', {
             method: 'POST',
@@ -250,7 +243,8 @@ export const useLicenseStore = create<LicenseState>()(
           set({ lastValidated: Date.now() });
           return true;
         } catch {
-          // Paid apps remain usable offline; network failure does not revoke.
+          // Network failure does not revoke a valid paid license. This preserves
+          // offline studio use while allowing revocation to sync next time online.
           return true;
         }
       },
