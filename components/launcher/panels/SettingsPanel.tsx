@@ -1,463 +1,229 @@
 /**
- * SettingsPanel.tsx
- * Application settings panel with theme, audio, and license management
+ * Launcher settings. Paid activation is automatic after checkout; manual entry
+ * exists only to restore an existing purchase on another/reinstalled device.
  */
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeStore } from '../themeStore';
-import { useLicenseStore, LicenseTier } from '../licenseStore';
+import { LicenseTier, useLicenseStore } from '../licenseStore';
 
-interface SettingsSectionProps {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}
-
-const SettingsSection: React.FC<SettingsSectionProps> = ({ title, description, children }) => {
-  const theme = useThemeStore(state => state.theme);
-  const isDark = theme === 'dark';
-
+const Card: React.FC<{ title: string; description?: string; children: React.ReactNode }> = ({ title, description, children }) => {
+  const isDark = useThemeStore(state => state.theme) === 'dark';
   return (
-    <div className={`rounded-xl p-6 border ${
-      isDark 
-        ? 'bg-slate-900/50 border-slate-800' 
-        : 'bg-white border-slate-200 shadow-sm'
-    }`}>
-      <h3 className={`font-semibold mb-1 ${
-        isDark ? 'text-slate-200' : 'text-slate-800'
-      }`}>
-        {title}
-      </h3>
-      {description && (
-        <p className={`text-sm mb-4 ${
-          isDark ? 'text-slate-500' : 'text-slate-500'
-        }`}>
-          {description}
-        </p>
-      )}
+    <section className={`rounded-xl p-6 border ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+      <h3 className={isDark ? 'font-semibold text-slate-200' : 'font-semibold text-slate-800'}>{title}</h3>
+      {description && <p className="text-sm text-slate-500 mt-1 mb-4">{description}</p>}
       {children}
-    </div>
-  );
-};
-
-interface SettingRowProps {
-  label: string;
-  description?: string;
-  children: React.ReactNode;
-}
-
-const SettingRow: React.FC<SettingRowProps> = ({ label, description, children }) => {
-  const theme = useThemeStore(state => state.theme);
-  const isDark = theme === 'dark';
-
-  return (
-    <div className="flex items-center justify-between py-3 border-b last:border-b-0 border-opacity-50"
-      style={{ borderColor: isDark ? 'rgb(51, 65, 85)' : 'rgb(226, 232, 240)' }}
-    >
-      <div className="flex-1 mr-4">
-        <div className={`font-mono text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-          {label}
-        </div>
-        {description && (
-          <div className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-            {description}
-          </div>
-        )}
-      </div>
-      <div className="flex-shrink-0">
-        {children}
-      </div>
-    </div>
+    </section>
   );
 };
 
 export const SettingsPanel: React.FC = () => {
   const { theme, setTheme } = useThemeStore();
   const isDark = theme === 'dark';
-  
-  const { 
-    license, 
-    getCurrentTier, 
-    activateLicense, 
-    deactivateLicense 
+  const {
+    license,
+    getCurrentTier,
+    beginUpgrade,
+    waitForPendingUpgrade,
+    activateLicense,
+    deactivateLicense,
+    upgradeStatus,
+    upgradeError,
   } = useLicenseStore();
-  
-  const currentTier = getCurrentTier();
-  
-  const [licenseKey, setLicenseKey] = useState('');
-  const [licenseError, setLicenseError] = useState('');
-  const [licenseSuccess, setLicenseSuccess] = useState(false);
-  const [isActivating, setIsActivating] = useState(false);
-  
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<string>('default');
 
-  // Fetch audio devices
+  const tier = getCurrentTier();
+  const [purchaseEmail, setPurchaseEmail] = useState('');
+  const [licenseKey, setLicenseKey] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState(localStorage.getItem('nodaw_audio_device') || 'default');
+
   useEffect(() => {
-    const getDevices = async () => {
+    let stream: MediaStream | null = null;
+    const loadDevices = async () => {
       try {
-        // Request permission first
-        await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const outputs = devices.filter(d => d.kind === 'audiooutput');
-        setAudioDevices(outputs);
-        
-        const savedDevice = localStorage.getItem('nodaw_audio_device');
-        if (savedDevice && outputs.some(d => d.deviceId === savedDevice)) {
-          setSelectedDevice(savedDevice);
-        }
-      } catch (e) {
-        console.log('Audio device enumeration not available');
+        setAudioDevices(devices.filter(device => device.kind === 'audiooutput'));
+      } catch {
+        // Device enumeration is optional and can be unavailable in Electron/web.
+      } finally {
+        stream?.getTracks().forEach(track => track.stop());
       }
     };
-    getDevices();
+    void loadDevices();
+    return () => stream?.getTracks().forEach(track => track.stop());
   }, []);
 
-  const handleDeviceChange = (deviceId: string) => {
-    setSelectedDevice(deviceId);
-    localStorage.setItem('nodaw_audio_device', deviceId);
-  };
+  const startUpgrade = async () => {
+    setError(null);
+    setMessage(null);
+    const popup = window.open('about:blank', '_blank');
+    if (popup) {
+      try { popup.opener = null; } catch { /* browser controlled */ }
+      popup.document.title = 'Opening secure checkout…';
+    }
 
-  const handleActivateLicense = async () => {
-    if (!licenseKey.trim()) {
-      setLicenseError('Please enter a license key');
+    const result = await beginUpgrade(LicenseTier.PRO);
+    if (!result.success || !result.checkoutUrl) {
+      popup?.close();
+      setError(result.error || 'Unable to start checkout.');
       return;
     }
-    
-    setIsActivating(true);
-    setLicenseError('');
-    setLicenseSuccess(false);
-    
-    try {
-      const result = await activateLicense(licenseKey.trim());
-      if (result.success) {
-        setLicenseSuccess(true);
-        setLicenseKey('');
-      } else {
-        setLicenseError(result.error || 'Invalid license key');
-      }
-    } finally {
-      setIsActivating(false);
+
+    if (popup) popup.location.href = result.checkoutUrl;
+    else window.location.assign(result.checkoutUrl);
+
+    setMessage('Checkout opened. PRO will activate automatically after payment.');
+    const unlocked = await waitForPendingUpgrade();
+    if (unlocked) setMessage('PRO activated. No restart required.');
+  };
+
+  const restorePurchase = async () => {
+    if (!purchaseEmail.trim() || !licenseKey.trim()) {
+      setError('Purchase email and recovery license key are required.');
+      return;
+    }
+    setRestoring(true);
+    setError(null);
+    setMessage(null);
+    const result = await activateLicense(licenseKey.trim(), purchaseEmail.trim());
+    setRestoring(false);
+    if (result.success) {
+      setMessage('Purchase restored successfully.');
+      setPurchaseEmail('');
+      setLicenseKey('');
+    } else {
+      setError(result.error || 'Purchase could not be restored.');
     }
   };
 
-  const handleDeactivate = () => {
-    if (confirm('Are you sure you want to deactivate your license?')) {
-      deactivateLicense();
-    }
-  };
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const getTierLabel = (tier: LicenseTier) => {
-    switch (tier) {
-      case LicenseTier.FREE: return 'Free';
-      case LicenseTier.PRO: return 'Pro';
-      case LicenseTier.PRO_PLUS: return 'Pro+';
-    }
-  };
-
-  const getTierColor = (tier: LicenseTier) => {
-    switch (tier) {
-      case LicenseTier.FREE: return isDark ? 'text-slate-400' : 'text-slate-600';
-      case LicenseTier.PRO: return isDark ? 'text-purple-400' : 'text-purple-600';
-      case LicenseTier.PRO_PLUS: return isDark ? 'text-orange-400' : 'text-orange-600';
-    }
-  };
+  const inputClass = `w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-cyan-500/20 ${
+    isDark ? 'bg-slate-950 border-slate-700 text-slate-200 placeholder-slate-600' : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400'
+  }`;
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
-      {/* Appearance Section */}
-      <SettingsSection 
-        title="Appearance" 
-        description="Customize how NoDAW looks"
-      >
-        <SettingRow 
-          label="Theme" 
-          description="Choose between light and dark mode"
-        >
-          <div className={`flex rounded-lg overflow-hidden border ${
-            isDark ? 'border-slate-700' : 'border-slate-200'
-          }`}>
-            {(['light', 'dark'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTheme(t)}
-                className={`px-4 py-2 font-mono text-xs uppercase tracking-wide transition-colors ${
-                  theme === t
-                    ? isDark
-                      ? 'bg-cyan-500/20 text-cyan-400'
-                      : 'bg-cyan-500 text-white'
-                    : isDark
-                      ? 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                {t === 'light' ? '☀️' : '🌙'} {t}
-              </button>
-            ))}
-          </div>
-        </SettingRow>
-      </SettingsSection>
+      <Card title="Appearance" description="Choose the Launcher interface theme.">
+        <div className="flex gap-2">
+          {(['light', 'dark'] as const).map(value => (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              className={`px-4 py-2 rounded-lg text-sm font-mono uppercase ${
+                theme === value ? 'bg-cyan-600 text-white' : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+      </Card>
 
-      {/* Audio Section */}
-      <SettingsSection 
-        title="Audio" 
-        description="Configure audio output settings"
-      >
-        <SettingRow 
-          label="Output Device" 
-          description="Select your preferred audio output"
+      <Card title="Audio" description="Select the preferred output device when the platform exposes one.">
+        <select
+          value={selectedDevice}
+          onChange={event => {
+            setSelectedDevice(event.target.value);
+            localStorage.setItem('nodaw_audio_device', event.target.value);
+          }}
+          className={inputClass}
         >
-          <select
-            value={selectedDevice}
-            onChange={(e) => handleDeviceChange(e.target.value)}
-            className={`px-3 py-2 rounded-lg font-mono text-sm border transition-colors min-w-[200px] ${
-              isDark
-                ? 'bg-slate-800 border-slate-700 text-slate-300'
-                : 'bg-white border-slate-200 text-slate-700'
-            }`}
-          >
-            <option value="default">System Default</option>
-            {audioDevices.map((device) => (
-              <option key={device.deviceId} value={device.deviceId}>
-                {device.label || `Device ${device.deviceId.slice(0, 8)}`}
-              </option>
-            ))}
-          </select>
-        </SettingRow>
-      </SettingsSection>
+          <option value="default">System Default</option>
+          {audioDevices.map(device => (
+            <option key={device.deviceId} value={device.deviceId}>{device.label || 'Audio output'}</option>
+          ))}
+        </select>
+      </Card>
 
-      {/* License Section */}
-      <SettingsSection 
-        title="License" 
-        description="Manage your NoDAW license"
-      >
-        {/* Current Status */}
-        <div className={`p-4 rounded-lg mb-4 ${
-          isDark ? 'bg-slate-800/50' : 'bg-slate-50'
-        }`}>
-          <div className="flex items-center justify-between">
+      <Card title="License" description="Free is permanent. PRO is a one-time upgrade tied to a verified purchase.">
+        <div className={`rounded-xl border p-4 mb-5 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className="flex justify-between items-center gap-4">
             <div>
-              <div className={`text-xs font-mono uppercase tracking-wider mb-1 ${
-                isDark ? 'text-slate-500' : 'text-slate-400'
-              }`}>
-                Current Plan
+              <div className="text-[11px] uppercase tracking-widest text-slate-500">Current plan</div>
+              <div className="text-xl font-bold mt-1">
+                {tier === LicenseTier.FREE ? 'FREE FOREVER' : tier === LicenseTier.PRO ? 'PRO' : 'PRO+'}
               </div>
-              <div className={`text-lg font-bold ${getTierColor(currentTier)}`}>
-                {getTierLabel(currentTier)}
-                {currentTier === LicenseTier.FREE && (
-                  <span className={`ml-2 text-xs font-normal ${
-                    isDark ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
-                    (3 tools included)
-                  </span>
-                )}
-              </div>
+              {license?.email && <div className="text-xs text-slate-500 mt-1">Verified purchase: {license.email}</div>}
             </div>
-            
             {license && (
-              <motion.button
-                onClick={handleDeactivate}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors ${
-                  isDark
-                    ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30'
-                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                }`}
+              <button
+                onClick={() => confirm('Deactivate this local license? You can restore it later with your purchase email and recovery key.') && deactivateLicense()}
+                className="px-3 py-2 rounded-lg border border-red-500/30 text-red-400 text-xs hover:bg-red-500/10"
               >
-                Deactivate
-              </motion.button>
+                Deactivate local license
+              </button>
             )}
           </div>
-          
-          {license && (
-            <div className={`mt-3 pt-3 border-t text-xs font-mono ${
-              isDark ? 'border-slate-700 text-slate-500' : 'border-slate-200 text-slate-400'
-            }`}>
-              <div>Activated: {formatDate(license.activatedAt)}</div>
-              {license.expiresAt && (
-                <div>Expires: {formatDate(license.expiresAt)}</div>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* License Activation */}
-        {!license && (
-          <div className="space-y-3">
-            <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Enter your license key to unlock Pro features
-            </div>
-            
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={licenseKey}
-                onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
-                placeholder="PRO-XXXX-XXXX-XXXX"
-                className={`flex-1 px-4 py-2.5 rounded-lg font-mono text-sm border transition-colors ${
-                  isDark
-                    ? 'bg-slate-800 border-slate-700 text-slate-200 placeholder-slate-600 focus:border-cyan-500'
-                    : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus:border-cyan-500'
-                } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
-              />
-              
-              <motion.button
-                onClick={handleActivateLicense}
-                disabled={isActivating || !licenseKey.trim()}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`px-5 py-2.5 rounded-lg font-mono text-sm transition-colors disabled:opacity-50 ${
-                  isDark
-                    ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/40'
-                    : 'bg-cyan-500 text-white hover:bg-cyan-600'
-                }`}
-              >
-                {isActivating ? 'Activating...' : 'Activate'}
-              </motion.button>
-            </div>
-            
-            <AnimatePresence>
-              {licenseError && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className={`text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}
+        {tier === LicenseTier.FREE && (
+          <div className="space-y-4">
+            <button
+              onClick={startUpgrade}
+              disabled={upgradeStatus === 'creating' || upgradeStatus === 'awaiting_payment' || upgradeStatus === 'activating'}
+              className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-cyan-600 text-white font-bold disabled:opacity-50"
+            >
+              UNLOCK PRO · ONE-TIME PURCHASE
+            </button>
+            <p className="text-xs text-slate-500 text-center">Checkout is secure. Activation happens automatically after verified payment.</p>
+
+            <div className={`pt-5 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <div className="text-sm font-medium mb-1">Restore an existing purchase</div>
+              <p className="text-xs text-slate-500 mb-3">Use this only after reinstalling or moving to another device.</p>
+              <div className="grid gap-3">
+                <input
+                  type="email"
+                  value={purchaseEmail}
+                  onChange={event => setPurchaseEmail(event.target.value)}
+                  placeholder="Purchase email"
+                  autoComplete="email"
+                  className={inputClass}
+                />
+                <input
+                  type="text"
+                  value={licenseKey}
+                  onChange={event => setLicenseKey(event.target.value)}
+                  placeholder="Recovery license key"
+                  autoComplete="off"
+                  className={`${inputClass} font-mono`}
+                />
+                <button
+                  onClick={restorePurchase}
+                  disabled={restoring}
+                  className={`px-4 py-2.5 rounded-lg border text-sm font-medium ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'} disabled:opacity-50`}
                 >
-                  ⚠️ {licenseError}
-                </motion.div>
-              )}
-              
-              {licenseSuccess && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className={`text-sm ${isDark ? 'text-green-400' : 'text-green-600'}`}
-                >
-                  ✓ License activated successfully!
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            <div className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-              Don't have a license?{' '}
-              <a 
-                href="https://nodaw.studio/pricing" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`underline ${isDark ? 'text-cyan-500 hover:text-cyan-400' : 'text-cyan-600 hover:text-cyan-500'}`}
-              >
-                Get one here
-              </a>
+                  {restoring ? 'Verifying…' : 'Restore Purchase'}
+                </button>
+              </div>
             </div>
           </div>
         )}
-      </SettingsSection>
 
-      {/* About Section */}
-      <SettingsSection 
-        title="About" 
-        description="NoDAW Studio Suite"
-      >
-        <div className="space-y-3">
-          <SettingRow label="Version">
-            <span className={`font-mono text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              1.2.0
-            </span>
-          </SettingRow>
-          
-          <SettingRow label="Build">
-            <span className={`font-mono text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              2026.04.07
-            </span>
-          </SettingRow>
-          
-          <div className={`pt-3 border-t ${
-            isDark ? 'border-slate-700' : 'border-slate-200'
-          }`}>
-            <div className="flex gap-4">
-              <a 
-                href="https://github.com/myaiplug/nodaw-launcher" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`text-xs font-mono underline ${
-                  isDark ? 'text-slate-500 hover:text-slate-400' : 'text-slate-400 hover:text-slate-500'
-                }`}
-              >
-                GitHub
-              </a>
-              <a 
-                href="https://nodaw.studio" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`text-xs font-mono underline ${
-                  isDark ? 'text-slate-500 hover:text-slate-400' : 'text-slate-400 hover:text-slate-500'
-                }`}
-              >
-                Website
-              </a>
-              <a 
-                href="https://nodaw.studio/docs" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`text-xs font-mono underline ${
-                  isDark ? 'text-slate-500 hover:text-slate-400' : 'text-slate-400 hover:text-slate-500'
-                }`}
-              >
-                Documentation
-              </a>
-            </div>
-          </div>
-        </div>
-      </SettingsSection>
+        <AnimatePresence>
+          {(error || upgradeError) && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 text-sm text-red-400">
+              {error || upgradeError}
+            </motion.div>
+          )}
+          {message && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 text-sm text-emerald-400">
+              {message}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
 
-      {/* Keyboard Shortcuts Reference */}
-      <SettingsSection 
-        title="Keyboard Shortcuts" 
-        description="Quick reference for keyboard navigation"
-      >
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {[
-            { keys: ['Ctrl', 'T'], action: 'Toggle theme' },
-            { keys: ['1-7'], action: 'Quick launch tools' },
-            { keys: ['Esc'], action: 'Close panel / Cancel' },
-            { keys: ['Space'], action: 'Play / Pause audio' },
-            { keys: ['←', '→'], action: 'Seek audio' },
-            { keys: ['A', 'B'], action: 'Switch A/B tracks' },
-          ].map(({ keys, action }) => (
-            <div key={action} className="flex items-center justify-between py-1.5">
-              <span className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                {action}
-              </span>
-              <div className="flex gap-1">
-                {keys.map((key) => (
-                  <kbd 
-                    key={key}
-                    className={`px-2 py-0.5 rounded text-xs font-mono ${
-                      isDark 
-                        ? 'bg-slate-800 text-slate-400 border border-slate-700' 
-                        : 'bg-slate-100 text-slate-600 border border-slate-200'
-                    }`}
-                  >
-                    {key}
-                  </kbd>
-                ))}
-              </div>
-            </div>
-          ))}
+      <Card title="About" description="NoDAW Studio Suite">
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="text-slate-500">Version</div><div className="font-mono">1.4.0</div>
+          <div className="text-slate-500">License model</div><div className="font-mono">Free Forever + One-Time PRO</div>
+          <div className="text-slate-500">Product</div><div className="font-mono">launcher</div>
         </div>
-      </SettingsSection>
+      </Card>
     </div>
   );
 };
