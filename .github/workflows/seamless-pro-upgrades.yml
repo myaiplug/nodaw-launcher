@@ -1,0 +1,27 @@
+name: Seamless PRO Upgrade
+
+on:
+  push:
+    branches:
+      - feat/seamless-pro-upgrades
+  pull_request:
+    paths:
+      - 'components/launcher/licenseStore.ts'
+      - 'components/launcher/ProGate.tsx'
+      - 'components/launcher/LauncherApp.tsx'
+      - 'components/launcher/panels/SettingsPanel.tsx'
+      - 'index.tsx'
+      - 'package.json'
+      - '.github/workflows/seamless-pro-upgrades.yml'
+
+jobs:
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
