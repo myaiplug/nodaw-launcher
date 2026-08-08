@@ -11,6 +11,7 @@ import SaturateITPage from './src/pages/vst/SaturateITPage';
 
 const loadStart = Date.now();
 const MIN_LOADER_TIME = 2000;
+const IS_ELECTRON = /Electron/i.test(navigator.userAgent);
 
 const hideLoader = () => {
   const loader = document.getElementById('nodaw-loader');
@@ -24,9 +25,10 @@ const hideLoader = () => {
 };
 
 const normalizeHashPath = () => {
-  const raw = window.location.hash.replace(/^#/, '') || '/';
+  const fallback = IS_ELECTRON ? '/app' : '/';
+  const raw = window.location.hash.replace(/^#/, '') || fallback;
   const path = raw.startsWith('/') ? raw : `/${raw}`;
-  return path.split('?')[0].replace(/\/+$/, '') || '/';
+  return path.split('?')[0].replace(/\/+$/, '') || fallback;
 };
 
 const renderRoute = (path: string) => {
@@ -38,9 +40,11 @@ const renderRoute = (path: string) => {
     case '/vst/clipit': return <ClipITPage />;
     case '/vst/chronos-dynamic-eq': return <ChronosDynamicEQPage />;
     case '/vst/saturateit': return <SaturateITPage />;
-    default:
-      if (window.location.hash !== '#/') window.location.replace('#/');
-      return <SalesLandingPage />;
+    default: {
+      const fallback = IS_ELECTRON ? '#/app' : '#/';
+      if (window.location.hash !== fallback) window.location.replace(fallback);
+      return IS_ELECTRON ? <LauncherApp /> : <SalesLandingPage />;
+    }
   }
 };
 
@@ -49,6 +53,7 @@ const AppWithLoaderHide: React.FC = () => {
 
   useEffect(() => {
     hideLoader();
+    if (IS_ELECTRON && !window.location.hash) window.location.replace('#/app');
     const onHashChange = () => setPath(normalizeHashPath());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
@@ -57,9 +62,6 @@ const AppWithLoaderHide: React.FC = () => {
   useEffect(() => {
     const state = useLicenseStore.getState();
     if (!state.pendingUpgrade) return;
-
-    // A checkout can outlive the app process. Resume verification on startup so
-    // a completed purchase unlocks without requiring the customer to repeat it.
     void state.waitForPendingUpgrade(90_000);
   }, []);
 
