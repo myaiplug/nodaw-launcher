@@ -92,6 +92,14 @@ async function jsonFetch(path: string, init?: RequestInit) {
   return data;
 }
 
+async function validateCredential(email: string, licenseKey: string) {
+  return jsonFetch('/api/entitlements/validate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, productId: PRODUCT_ID, licenseKey }),
+  });
+}
+
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -152,18 +160,45 @@ export const useLicenseStore = create<LicenseState>()(
       checkPendingUpgrade: async () => {
         const pending = get().pendingUpgrade;
         if (!pending) return false;
+
+        if (Date.parse(pending.expiresAt) <= Date.now()) {
+          set({ pendingUpgrade: null, upgradeStatus: 'error', upgradeError: 'Upgrade session expired. Start checkout again.' });
+          return false;
+        }
+
         try {
           const query = new URLSearchParams({ claimId: pending.claimId, claimToken: pending.claimToken });
           const data = await jsonFetch(`/api/upgrades/status?${query.toString()}`);
           const claim = data.claim;
+          if (!claim) return false;
+
+          if (claim.productId !== pending.productId || claim.productId !== PRODUCT_ID || claim.plan !== pending.plan) {
+            set({ pendingUpgrade: null, upgradeStatus: 'error', upgradeError: 'Upgrade verification mismatch. Purchase was not activated.' });
+            return false;
+          }
+
+          if (claim.status === 'expired') {
+            set({ pendingUpgrade: null, upgradeStatus: 'error', upgradeError: 'Upgrade session expired. Start checkout again.' });
+            return false;
+          }
+
           if (claim.status !== 'fulfilled' || !claim.licenseKey || !claim.email) return false;
 
           set({ upgradeStatus: 'activating', upgradeError: null });
+          const normalizedEmail = String(claim.email).trim().toLowerCase();
+          const cleanKey = String(claim.licenseKey).trim();
+          const validation = await validateCredential(normalizedEmail, cleanKey);
+
+          if (!validation.valid || validation.plan !== pending.plan) {
+            set({ pendingUpgrade: null, upgradeStatus: 'error', upgradeError: 'Purchase was received but the entitlement could not be verified.' });
+            return false;
+          }
+
           const license: License = {
-            tier: tierFromPlan(claim.plan),
-            key: claim.licenseKey,
-            email: String(claim.email).trim().toLowerCase(),
-            features: [],
+            tier: tierFromPlan(validation.plan),
+            key: cleanKey,
+            email: normalizedEmail,
+            features: Array.isArray(validation.features) ? validation.features : [],
             activatedAt: Date.now(),
             expiresAt: null,
           };
@@ -200,11 +235,7 @@ export const useLicenseStore = create<LicenseState>()(
 
         set({ isValidating: true });
         try {
-          const result = await jsonFetch('/api/entitlements/validate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: normalizedEmail, productId: PRODUCT_ID, licenseKey: cleanKey }),
-          });
+          const result = await validateCredential(normalizedEmail, cleanKey);
           if (!result.valid) {
             set({ isValidating: false });
             return { success: false, error: result.error || 'License could not be verified' };
@@ -231,16 +262,19 @@ export const useLicenseStore = create<LicenseState>()(
         const { license } = get();
         if (!license) return false;
         try {
-          const result = await jsonFetch('/api/entitlements/validate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: license.email, productId: PRODUCT_ID, licenseKey: license.key }),
-          });
+          const result = await validateCredential(license.email, license.key);
           if (!result.valid) {
             set({ license: null, lastValidated: Date.now() });
             return false;
           }
-          set({ lastValidated: Date.now() });
+          set({
+            license: {
+              ...license,
+              tier: tierFromPlan(result.plan),
+              features: Array.isArray(result.features) ? result.features : license.features,
+            },
+            lastValidated: Date.now(),
+          });
           return true;
         } catch {
           // Network failure does not revoke a valid paid license. This preserves
