@@ -43,7 +43,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build unsigned Windows installer
-        run: npm run electron:build:win
+        run: npm run electron:build:win -- --publish never
         env:
           VITE_NODAW_ENTITLEMENTS_URL: https://entitlements.nodawlabs.com
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
