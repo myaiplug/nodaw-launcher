@@ -39,69 +39,22 @@
       "nodaw.ico"
     ],
     "extraResources": [
-      {
-        "from": "bundled-apps/TrimIt",
-        "to": "apps/TrimIt",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "bundled-apps/IconGenius",
-        "to": "apps/IconGenius",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "bundled-apps/ScrewAI",
-        "to": "apps/ScrewAI",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "bundled-apps/StemSplit",
-        "to": "apps/StemSplit",
-        "filter": [
-          "**/*"
-        ]
-      }
+      { "from": "bundled-apps/TrimIt", "to": "apps/TrimIt", "filter": ["**/*"] },
+      { "from": "bundled-apps/IconGenius", "to": "apps/IconGenius", "filter": ["**/*"] },
+      { "from": "bundled-apps/ScrewAI", "to": "apps/ScrewAI", "filter": ["**/*"] },
+      { "from": "bundled-apps/StemSplit", "to": "apps/StemSplit", "filter": ["**/*"] }
     ],
     "asar": true,
-    "asarUnpack": [
-      "**/*.node",
-      "**/ffmpeg*",
-      "**/python*"
-    ],
+    "asarUnpack": ["**/*.node", "**/ffmpeg*", "**/python*"],
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
       "icon": "nodaw.ico",
       "legalTrademarks": "NoDAW Studios"
     },
     "mac": {
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
       ],
       "icon": "nodaw.png",
       "category": "public.app-category.music",
@@ -115,23 +68,12 @@
       "title": "${productName} ${version}",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
-        }
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
       ]
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
+      "target": ["AppImage", "deb"],
       "icon": "nodaw.png",
       "category": "Audio"
     },
@@ -160,7 +102,6 @@
     "libflacjs": "^5.4.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "react-router-dom": "^7.14.2",
     "three": "^0.183.2",
     "web-audio-beat-detector": "^8.2.35",
     "zustand": "^5.0.12"

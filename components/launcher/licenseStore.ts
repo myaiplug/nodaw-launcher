@@ -1,11 +1,14 @@
 /**
- * licenseStore.ts
- * Zustand store for license management with persistence
+ * Production-oriented NoDAW Launcher entitlement store.
+ *
+ * Free mode is the default and works forever. PRO/PRO+ are server-issued
+ * entitlements. Direct Stripe upgrades use a short-lived claim so checkout can
+ * unlock this app instance automatically; manual email + license activation is
+ * retained only as a recovery path.
  */
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ToolTier } from './tools';
 
 export enum LicenseTier {
   FREE = 'free',
@@ -16,228 +19,292 @@ export enum LicenseTier {
 interface License {
   tier: LicenseTier;
   key: string;
-  email?: string;
+  email: string;
+  features: string[];
   activatedAt: number;
-  expiresAt: number | null;  // null = lifetime
-  machineId?: string;
+  expiresAt: number | null;
+}
+
+interface PendingUpgrade {
+  claimId: string;
+  claimToken: string;
+  productId: string;
+  plan: LicenseTier;
+  checkoutUrl: string;
+  expiresAt: string;
+}
+
+interface UpgradeResult {
+  success: boolean;
+  checkoutUrl?: string;
+  error?: string;
 }
 
 interface LicenseState {
   license: License | null;
+  pendingUpgrade: PendingUpgrade | null;
   isValidating: boolean;
   lastValidated: number | null;
-  isDevMode: boolean;  // Secret admin bypass
-  
-  // Actions
+  upgradeStatus: 'idle' | 'creating' | 'awaiting_payment' | 'activating' | 'unlocked' | 'error';
+  upgradeError: string | null;
+  isDevMode: false;
+
   getCurrentTier: () => LicenseTier;
   canAccessTool: (toolId: string) => boolean;
-  activateLicense: (key: string) => Promise<{ success: boolean; error?: string }>;
+  beginUpgrade: (tier?: LicenseTier.PRO | LicenseTier.PRO_PLUS) => Promise<UpgradeResult>;
+  checkPendingUpgrade: () => Promise<boolean>;
+  waitForPendingUpgrade: (timeoutMs?: number) => Promise<boolean>;
+  activateLicense: (key: string, email?: string) => Promise<{ success: boolean; error?: string }>;
   deactivateLicense: () => void;
   validateOnline: () => Promise<boolean>;
-  toggleDevMode: (secret: string) => boolean;  // Hidden admin toggle
+  toggleDevMode: (_secret: string) => false;
 }
 
-// Tool access mapping
+const PRODUCT_ID = 'launcher';
+const ENTITLEMENTS_URL = String(import.meta.env.VITE_NODAW_ENTITLEMENTS_URL || '').replace(/\/$/, '');
+
 const TIER_ACCESS: Record<LicenseTier, string[]> = {
   [LicenseTier.FREE]: ['trim-it', 'convert-it', 'test-it'],
-  [LicenseTier.PRO]: ['trim-it', 'convert-it', 'test-it', 'split-it', 'screw-it', 'fx-it'],
-  [LicenseTier.PRO_PLUS]: ['*']  // Wildcard = all tools
+  [LicenseTier.PRO]: ['trim-it', 'convert-it', 'test-it', 'split-it', 'screw-it', 'fx-it', 'icon-it', 'half-screw'],
+  [LicenseTier.PRO_PLUS]: ['*']
 };
 
-// Secret dev mode passphrase - change this to your own secret!
-const DEV_SECRET = 'nodaw-dev-2026';
+function getAppInstanceId(): string {
+  const storageKey = 'nodaw-app-instance-id';
+  const existing = localStorage.getItem(storageKey);
+  if (existing) return existing;
+  const value = globalThis.crypto?.randomUUID?.() || `app-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  localStorage.setItem(storageKey, value);
+  return value;
+}
 
-// Simple hash for machine ID (client-side only)
-const generateMachineId = (): string => {
-  const data = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width,
-    screen.height,
-    new Date().getTimezoneOffset()
-  ].join('|');
-  
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(36);
-};
+function tierFromPlan(plan: string): LicenseTier {
+  if (plan === LicenseTier.PRO_PLUS) return LicenseTier.PRO_PLUS;
+  if (plan === LicenseTier.PRO) return LicenseTier.PRO;
+  return LicenseTier.FREE;
+}
 
-// License validation (local for now, can be extended to server)
-const validateLicenseKey = async (key: string): Promise<{ valid: boolean; tier?: LicenseTier; error?: string }> => {
-  // Normalize key
-  const cleanKey = key.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-  
-  // Demo validation patterns:
-  // PRO-XXXX-XXXX-XXXX = Pro license
-  // PLUS-XXXX-XXXX-XXXX = Pro+ license
-  // DEMO-PRO-XXXX = Demo Pro (expires in 7 days)
-  // DEMO-PLUS-XXXX = Demo Pro+ (expires in 7 days)
-  
-  // In production, this would call your license server API
-  
-  if (cleanKey.startsWith('PRO-') && cleanKey.length >= 16) {
-    return { valid: true, tier: LicenseTier.PRO };
-  }
-  
-  if (cleanKey.startsWith('PLUS-') && cleanKey.length >= 17) {
-    return { valid: true, tier: LicenseTier.PRO_PLUS };
-  }
-  
-  if (cleanKey.startsWith('DEMO-PRO-') && cleanKey.length >= 12) {
-    return { valid: true, tier: LicenseTier.PRO };
-  }
-  
-  if (cleanKey.startsWith('DEMO-PLUS-') && cleanKey.length >= 13) {
-    return { valid: true, tier: LicenseTier.PRO_PLUS };
-  }
-  
-  // Add a small delay to simulate network request
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  return { valid: false, error: 'Invalid license key format' };
-};
+async function jsonFetch(path: string, init?: RequestInit) {
+  if (!ENTITLEMENTS_URL) throw new Error('NoDAW entitlement service is not configured');
+  const response = await fetch(`${ENTITLEMENTS_URL}${path}`, init);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  return data;
+}
+
+async function validateCredential(email: string, licenseKey: string) {
+  return jsonFetch('/api/entitlements/validate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, productId: PRODUCT_ID, licenseKey }),
+  });
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export const useLicenseStore = create<LicenseState>()(
   persist(
     (set, get) => ({
       license: null,
+      pendingUpgrade: null,
       isValidating: false,
       lastValidated: null,
-      isDevMode: false,  // Admin bypass - not persisted
-      
+      upgradeStatus: 'idle',
+      upgradeError: null,
+      isDevMode: false,
+
       getCurrentTier: () => {
-        const { license, isDevMode } = get();
-        
-        // Dev mode = full access
-        if (isDevMode) return LicenseTier.PRO_PLUS;
-        
+        const { license } = get();
         if (!license) return LicenseTier.FREE;
-        
-        // Check expiration
-        if (license.expiresAt && Date.now() > license.expiresAt) {
-          return LicenseTier.FREE;
-        }
-        
+        if (license.expiresAt && Date.now() > license.expiresAt) return LicenseTier.FREE;
         return license.tier;
       },
-      
+
       canAccessTool: (toolId: string) => {
-        const { isDevMode } = get();
-        
-        // Dev mode bypasses all restrictions
-        if (isDevMode) return true;
-        
         const tier = get().getCurrentTier();
-        const allowedTools = TIER_ACCESS[tier];
-        
-        // Wildcard means all access
-        if (allowedTools.includes('*')) return true;
-        
-        return allowedTools.includes(toolId);
+        const allowed = TIER_ACCESS[tier];
+        return allowed.includes('*') || allowed.includes(toolId);
       },
-      
-      toggleDevMode: (secret: string) => {
-        if (secret === DEV_SECRET) {
-          const current = get().isDevMode;
-          set({ isDevMode: !current });
-          console.log(current ? '🔒 Dev mode disabled' : '🔓 Dev mode enabled');
+
+      beginUpgrade: async (tier = LicenseTier.PRO) => {
+        set({ upgradeStatus: 'creating', upgradeError: null });
+        try {
+          const data = await jsonFetch('/api/upgrades/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: PRODUCT_ID,
+              plan: tier,
+              appInstanceId: getAppInstanceId(),
+            }),
+          });
+          const pendingUpgrade: PendingUpgrade = {
+            claimId: data.claimId,
+            claimToken: data.claimToken,
+            productId: data.productId,
+            plan: tier,
+            checkoutUrl: data.checkoutUrl,
+            expiresAt: data.expiresAt,
+          };
+          set({ pendingUpgrade, upgradeStatus: 'awaiting_payment', upgradeError: null });
+          return { success: true, checkoutUrl: pendingUpgrade.checkoutUrl };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unable to start checkout';
+          set({ upgradeStatus: 'error', upgradeError: message });
+          return { success: false, error: message };
+        }
+      },
+
+      checkPendingUpgrade: async () => {
+        const pending = get().pendingUpgrade;
+        if (!pending) return false;
+
+        if (Date.parse(pending.expiresAt) <= Date.now()) {
+          set({ pendingUpgrade: null, upgradeStatus: 'error', upgradeError: 'Upgrade session expired. Start checkout again.' });
+          return false;
+        }
+
+        try {
+          const query = new URLSearchParams({ claimId: pending.claimId, claimToken: pending.claimToken });
+          const data = await jsonFetch(`/api/upgrades/status?${query.toString()}`);
+          const claim = data.claim;
+          if (!claim) return false;
+
+          if (claim.productId !== pending.productId || claim.productId !== PRODUCT_ID || claim.plan !== pending.plan) {
+            set({ pendingUpgrade: null, upgradeStatus: 'error', upgradeError: 'Upgrade verification mismatch. Purchase was not activated.' });
+            return false;
+          }
+
+          if (claim.status === 'expired') {
+            set({ pendingUpgrade: null, upgradeStatus: 'error', upgradeError: 'Upgrade session expired. Start checkout again.' });
+            return false;
+          }
+
+          if (claim.status !== 'fulfilled' || !claim.licenseKey || !claim.email) return false;
+
+          set({ upgradeStatus: 'activating', upgradeError: null });
+          const normalizedEmail = String(claim.email).trim().toLowerCase();
+          const cleanKey = String(claim.licenseKey).trim();
+          const validation = await validateCredential(normalizedEmail, cleanKey);
+
+          if (!validation.valid || validation.plan !== pending.plan) {
+            set({ pendingUpgrade: null, upgradeStatus: 'error', upgradeError: 'Purchase was received but the entitlement could not be verified.' });
+            return false;
+          }
+
+          const license: License = {
+            tier: tierFromPlan(validation.plan),
+            key: cleanKey,
+            email: normalizedEmail,
+            features: Array.isArray(validation.features) ? validation.features : [],
+            activatedAt: Date.now(),
+            expiresAt: null,
+          };
+          set({
+            license,
+            pendingUpgrade: null,
+            lastValidated: Date.now(),
+            upgradeStatus: 'unlocked',
+            upgradeError: null,
+          });
           return true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Activation check failed';
+          set({ upgradeError: message });
+          return false;
+        }
+      },
+
+      waitForPendingUpgrade: async (timeoutMs = 5 * 60 * 1000) => {
+        const started = Date.now();
+        while (Date.now() - started < timeoutMs) {
+          if (!get().pendingUpgrade) return get().getCurrentTier() !== LicenseTier.FREE;
+          if (await get().checkPendingUpgrade()) return true;
+          await sleep(1500);
         }
         return false;
       },
-      
-      activateLicense: async (key: string) => {
+
+      activateLicense: async (key: string, email?: string) => {
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        const cleanKey = String(key || '').trim();
+        if (!normalizedEmail) return { success: false, error: 'Purchase email is required to restore a license' };
+        if (!cleanKey) return { success: false, error: 'License key is required' };
+
         set({ isValidating: true });
-        
         try {
-          const result = await validateLicenseKey(key);
-          
-          if (result.valid && result.tier) {
-            const cleanKey = key.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-            const isDemo = cleanKey.startsWith('DEMO-');
-            
-            const license: License = {
-              tier: result.tier,
-              key: cleanKey,
-              activatedAt: Date.now(),
-              expiresAt: isDemo ? Date.now() + (7 * 24 * 60 * 60 * 1000) : null, // 7 days for demo
-              machineId: generateMachineId()
-            };
-            
-            set({ 
-              license, 
-              isValidating: false, 
-              lastValidated: Date.now() 
-            });
-            
-            return { success: true };
+          const result = await validateCredential(normalizedEmail, cleanKey);
+          if (!result.valid) {
+            set({ isValidating: false });
+            return { success: false, error: result.error || 'License could not be verified' };
           }
-          
-          set({ isValidating: false });
-          return { success: false, error: result.error || 'Invalid license key' };
-          
+          const license: License = {
+            tier: tierFromPlan(result.plan),
+            key: cleanKey,
+            email: normalizedEmail,
+            features: Array.isArray(result.features) ? result.features : [],
+            activatedAt: Date.now(),
+            expiresAt: null,
+          };
+          set({ license, isValidating: false, lastValidated: Date.now(), upgradeStatus: 'unlocked', upgradeError: null });
+          return { success: true };
         } catch (error) {
           set({ isValidating: false });
-          return { success: false, error: 'Validation failed. Please try again.' };
+          return { success: false, error: error instanceof Error ? error.message : 'Validation failed' };
         }
       },
-      
-      deactivateLicense: () => {
-        set({ license: null, lastValidated: null });
-      },
-      
+
+      deactivateLicense: () => set({ license: null, lastValidated: null, pendingUpgrade: null, upgradeStatus: 'idle', upgradeError: null }),
+
       validateOnline: async () => {
         const { license } = get();
         if (!license) return false;
-        
-        // In production, this would call the license server to verify
-        // For now, just check if not expired
-        if (license.expiresAt && Date.now() > license.expiresAt) {
-          set({ license: null });
-          return false;
+        try {
+          const result = await validateCredential(license.email, license.key);
+          if (!result.valid) {
+            set({ license: null, lastValidated: Date.now() });
+            return false;
+          }
+          set({
+            license: {
+              ...license,
+              tier: tierFromPlan(result.plan),
+              features: Array.isArray(result.features) ? result.features : license.features,
+            },
+            lastValidated: Date.now(),
+          });
+          return true;
+        } catch {
+          // Network failure does not revoke a valid paid license. This preserves
+          // offline studio use while allowing revocation to sync next time online.
+          return true;
         }
-        
-        set({ lastValidated: Date.now() });
-        return true;
-      }
+      },
+
+      // Deprecated compatibility shim. The previous client-side secret was a
+      // bypass vulnerability and has intentionally been removed.
+      toggleDevMode: () => false,
     }),
     {
-      name: 'nodaw-license',
-      partialize: (state) => ({ 
+      name: 'nodaw-license-v2',
+      partialize: (state) => ({
         license: state.license,
-        lastValidated: state.lastValidated 
-      })
+        pendingUpgrade: state.pendingUpgrade,
+        lastValidated: state.lastValidated,
+      }),
     }
   )
 );
 
-// Convenience hooks
 export const useCurrentTier = () => useLicenseStore(state => state.getCurrentTier());
 export const useCanAccessTool = (toolId: string) => useLicenseStore(state => state.canAccessTool(toolId));
 export const useIsProUser = () => {
   const tier = useLicenseStore(state => state.getCurrentTier());
   return tier === LicenseTier.PRO || tier === LicenseTier.PRO_PLUS;
 };
-export const useIsProPlusUser = () => {
-  const tier = useLicenseStore(state => state.getCurrentTier());
-  return tier === LicenseTier.PRO_PLUS;
-};
-export const useIsDevMode = () => useLicenseStore(state => state.isDevMode);
-
-// Secret dev mode activation via console
-// Usage: window.__nodaw_dev('nodaw-dev-2026')
-if (typeof window !== 'undefined') {
-  (window as any).__nodaw_dev = (secret: string) => {
-    const store = useLicenseStore.getState();
-    if (store.toggleDevMode(secret)) {
-      return store.isDevMode ? '🔓 All tools unlocked!' : '🔒 Dev mode disabled';
-    }
-    return '❌ Invalid secret';
-  };
-}
+export const useIsProPlusUser = () => useLicenseStore(state => state.getCurrentTier()) === LicenseTier.PRO_PLUS;
+export const useIsDevMode = () => false;
 
 export default useLicenseStore;

@@ -1,33 +1,15 @@
-/**
- * ProGate.tsx
- * Feature gating component for Pro/Free tier enforcement
- * Provides visual overlay and upgrade prompts for locked features
- */
-
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useThemeStore } from './themeStore';
-import { useLicenseStore, LicenseTier } from './licenseStore';
-import { useUsageStore, FREE_TIER_LIMITS, ToolUsageLimits } from './usageStore';
-
-// ═══════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════
+import { LicenseTier, useLicenseStore } from './licenseStore';
 
 interface ProGateProps {
-  /** Tool ID for checking limits */
   toolId: string;
-  /** Required tier to fully access this feature */
   requiredTier?: LicenseTier;
-  /** Children to render (the actual feature content) */
   children: React.ReactNode;
-  /** Render mode: 'overlay' shows content with overlay, 'block' hides content entirely */
   mode?: 'overlay' | 'block' | 'badge';
-  /** Custom message for the gate */
   message?: string;
-  /** Show usage remaining counter */
   showUsage?: boolean;
-  /** Callback when upgrade is clicked */
   onUpgradeClick?: () => void;
 }
 
@@ -43,182 +25,105 @@ interface UpgradeModalProps {
   requiredTier: LicenseTier;
 }
 
-// ═══════════════════════════════════════════════════════════
-// TIER BADGE COLORS
-// ═══════════════════════════════════════════════════════════
-
 const TIER_CONFIG = {
   [LicenseTier.FREE]: {
     label: 'FREE',
-    bg: 'bg-slate-600',
     text: 'text-slate-100',
-    border: 'border-slate-500',
-    gradient: 'from-slate-600 to-slate-700'
+    gradient: 'from-slate-600 to-slate-700',
   },
   [LicenseTier.PRO]: {
     label: 'PRO',
-    bg: 'bg-cyan-600',
     text: 'text-cyan-100',
-    border: 'border-cyan-500',
-    gradient: 'from-cyan-500 to-blue-600'
+    gradient: 'from-cyan-500 to-blue-600',
   },
   [LicenseTier.PRO_PLUS]: {
     label: 'PRO+',
-    bg: 'bg-amber-500',
     text: 'text-amber-100',
-    border: 'border-amber-400',
-    gradient: 'from-amber-400 to-orange-500'
-  }
+    gradient: 'from-amber-400 to-orange-500',
+  },
 };
 
-// ═══════════════════════════════════════════════════════════
-// USAGE BADGE COMPONENT
-// ═══════════════════════════════════════════════════════════
+function tierAllows(current: LicenseTier, required: LicenseTier) {
+  if (current === LicenseTier.PRO_PLUS) return true;
+  if (current === LicenseTier.PRO) return required !== LicenseTier.PRO_PLUS;
+  return required === LicenseTier.FREE;
+}
 
-export const UsageBadge: React.FC<UsageBadgeProps> = ({ toolId, size = 'md' }) => {
-  const theme = useThemeStore(state => state.theme);
-  const isDark = theme === 'dark';
-  const { getTodaysUsage, getLimits, getUsageRemaining } = useUsageStore();
+export const UsageBadge: React.FC<UsageBadgeProps> = ({ size = 'md' }) => {
   const tier = useLicenseStore(state => state.getCurrentTier());
-  
-  // Pro users don't need usage badges
-  if (tier !== LicenseTier.FREE) {
-    return null;
-  }
-  
-  const limits = getLimits(toolId);
-  if (!limits || limits.dailyLimit <= 0) return null;
-  
-  const remaining = getUsageRemaining(toolId);
-  const used = limits.dailyLimit - remaining;
-  const percentage = (used / limits.dailyLimit) * 100;
-  
+  if (tier !== LicenseTier.FREE) return null;
   const sizeClasses = {
     sm: 'text-[9px] px-1.5 py-0.5',
     md: 'text-[10px] px-2 py-1',
-    lg: 'text-xs px-3 py-1.5'
+    lg: 'text-xs px-3 py-1.5',
   };
-  
-  const isLow = remaining <= Math.ceil(limits.dailyLimit * 0.2);
-  const isEmpty = remaining === 0;
-  
   return (
-    <div className={`
-      inline-flex items-center gap-1.5 rounded-full font-mono ${sizeClasses[size]}
-      ${isEmpty 
-        ? isDark ? 'bg-red-900/50 text-red-400 border border-red-500/30' : 'bg-red-100 text-red-600 border border-red-300'
-        : isLow 
-          ? isDark ? 'bg-amber-900/50 text-amber-400 border border-amber-500/30' : 'bg-amber-100 text-amber-600 border border-amber-300'
-          : isDark ? 'bg-slate-800 text-slate-400 border border-slate-700' : 'bg-slate-100 text-slate-600 border border-slate-300'
-      }
-    `}>
-      <span>{remaining}</span>
-      <span className="opacity-60">/</span>
-      <span className="opacity-60">{limits.dailyLimit}</span>
-      {isEmpty && <span className="ml-1">⚠️</span>}
-    </div>
+    <span className={`inline-flex rounded-full font-mono border border-slate-600 text-slate-400 ${sizeClasses[size]}`}>
+      FREE FOREVER
+    </span>
   );
 };
 
-// ═══════════════════════════════════════════════════════════
-// TIER BADGE COMPONENT
-// ═══════════════════════════════════════════════════════════
-
 export const TierBadge: React.FC<{ tier: LicenseTier; size?: 'sm' | 'md' | 'lg' }> = ({ tier, size = 'md' }) => {
   const config = TIER_CONFIG[tier];
-  
   const sizeClasses = {
     sm: 'text-[8px] px-1.5 py-0.5',
     md: 'text-[9px] px-2 py-0.5',
-    lg: 'text-xs px-2.5 py-1'
+    lg: 'text-xs px-2.5 py-1',
   };
-  
   return (
-    <span className={`
-      inline-flex items-center font-bold tracking-wider rounded ${sizeClasses[size]}
-      bg-gradient-to-r ${config.gradient} ${config.text} shadow-sm
-    `}>
+    <span className={`inline-flex items-center font-bold tracking-wider rounded ${sizeClasses[size]} bg-gradient-to-r ${config.gradient} ${config.text} shadow-sm`}>
       {config.label}
     </span>
   );
 };
 
-// ═══════════════════════════════════════════════════════════
-// RESTRICTION LIST COMPONENT
-// ═══════════════════════════════════════════════════════════
-
-export const RestrictionList: React.FC<{ toolId: string }> = ({ toolId }) => {
+export const RestrictionList: React.FC<{ toolId: string }> = () => {
   const theme = useThemeStore(state => state.theme);
-  const isDark = theme === 'dark';
   const tier = useLicenseStore(state => state.getCurrentTier());
-  const { getLimits } = useUsageStore();
-  
-  // Pro users don't see restrictions
   if (tier !== LicenseTier.FREE) return null;
-  
-  const limits = getLimits(toolId);
-  if (!limits || limits.restrictions.length === 0) return null;
-  
   return (
-    <div className={`mt-2 p-3 rounded-lg ${isDark ? 'bg-slate-900/50' : 'bg-slate-100'}`}>
-      <div className={`text-[10px] font-mono uppercase tracking-wider mb-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-        Free Tier Limits
-      </div>
-      <ul className="space-y-1">
-        {limits.restrictions.map((r, i) => (
-          <li key={i} className={`text-xs flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <span className="text-amber-500">•</span>
-            {r}
-          </li>
-        ))}
-        {limits.maxDurationSec && (
-          <li className={`text-xs flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <span className="text-amber-500">•</span>
-            Max duration: {Math.floor(limits.maxDurationSec / 60)}:{(limits.maxDurationSec % 60).toString().padStart(2, '0')}
-          </li>
-        )}
-        {limits.maxFileSizeMB && (
-          <li className={`text-xs flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            <span className="text-amber-500">•</span>
-            Max file size: {limits.maxFileSizeMB}MB
-          </li>
-        )}
-      </ul>
+    <div className={`mt-2 p-3 rounded-lg ${theme === 'dark' ? 'bg-slate-900/50' : 'bg-slate-100'}`}>
+      <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mb-1">Free forever</div>
+      <div className="text-xs text-slate-500">Use the included capabilities without daily counters. PRO unlocks expanded tools and automation.</div>
     </div>
   );
 };
 
-// ═══════════════════════════════════════════════════════════
-// UPGRADE MODAL COMPONENT
-// ═══════════════════════════════════════════════════════════
-
-export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, toolId, requiredTier }) => {
+export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, requiredTier }) => {
   const theme = useThemeStore(state => state.theme);
   const isDark = theme === 'dark';
-  
+  const beginUpgrade = useLicenseStore(state => state.beginUpgrade);
+  const waitForPendingUpgrade = useLicenseStore(state => state.waitForPendingUpgrade);
+  const upgradeStatus = useLicenseStore(state => state.upgradeStatus);
+  const upgradeError = useLicenseStore(state => state.upgradeError);
+  const [localError, setLocalError] = useState<string | null>(null);
+
   const tierConfig = TIER_CONFIG[requiredTier];
-  
-  const PRO_FEATURES = [
-    '✓ Unlimited daily uses',
-    '✓ Maximum file sizes (500MB+)',
-    '✓ Full duration support (30min+)',
-    '✓ Lossless quality exports',
-    '✓ All presets & effects',
-    '✓ No watermarks',
-    '✓ Batch processing',
-    '✓ Priority processing'
-  ];
-  
-  const PRO_PLUS_FEATURES = [
-    ...PRO_FEATURES,
-    '✓ Full Workstation access',
-    '✓ AI-powered features',
-    '✓ Custom effect chains',
-    '✓ MIDI controller support',
-    '✓ API access',
-    '✓ Priority support'
-  ];
-  
+  const isBusy = upgradeStatus === 'creating' || upgradeStatus === 'awaiting_payment' || upgradeStatus === 'activating';
+
+  const handleUpgrade = async () => {
+    setLocalError(null);
+    const checkoutWindow = window.open('about:blank', '_blank');
+    const result = await beginUpgrade(requiredTier === LicenseTier.PRO_PLUS ? LicenseTier.PRO_PLUS : LicenseTier.PRO);
+
+    if (!result.success || !result.checkoutUrl) {
+      checkoutWindow?.close();
+      setLocalError(result.error || 'Unable to start checkout');
+      return;
+    }
+
+    if (checkoutWindow) checkoutWindow.location.href = result.checkoutUrl;
+    else window.location.href = result.checkoutUrl;
+
+    const unlocked = await waitForPendingUpgrade();
+    if (unlocked) onClose();
+  };
+
+  const features = requiredTier === LicenseTier.PRO_PLUS
+    ? ['Everything in PRO', 'Workstation access', 'Expanded system integrations']
+    : ['Expanded tools', 'Batch workflows', 'Automation', 'Advanced processing and exports'];
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -230,78 +135,78 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, too
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.9, y: 20 }}
+            initial={{ scale: 0.96, y: 14 }}
             animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 20 }}
-            onClick={(e) => e.stopPropagation()}
-            className={`w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl
-              ${isDark ? 'bg-slate-900' : 'bg-white'}`}
+            exit={{ scale: 0.96, y: 14 }}
+            onClick={(event) => event.stopPropagation()}
+            className={`w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl ${isDark ? 'bg-slate-900' : 'bg-white'}`}
           >
-            {/* Header */}
             <div className={`p-6 bg-gradient-to-r ${tierConfig.gradient}`}>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-2xl font-bold text-white">Upgrade to {tierConfig.label}</h3>
-                  <p className="text-white/80 text-sm mt-1">Unlock the full power of NoDAW</p>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/70">NoDAW Launcher</div>
+                  <h3 className="text-2xl font-bold text-white mt-1">Unlock {tierConfig.label}</h3>
+                  <p className="text-white/80 text-sm mt-1">One-time license. No subscription.</p>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
-                >
-                  ✕
-                </button>
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white">✕</button>
               </div>
             </div>
-            
-            {/* Content */}
+
             <div className="p-6">
-              <div className={`text-sm mb-6 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                You've reached the free tier limit for this feature. Upgrade to unlock unlimited access and premium features.
-              </div>
-              
-              {/* Features list */}
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                {(requiredTier === LicenseTier.PRO_PLUS ? PRO_PLUS_FEATURES : PRO_FEATURES).map((feature, i) => (
-                  <div key={i} className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {feature}
+              <p className={`text-sm mb-5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                Free mode stays free forever. Upgrade only to unlock expanded capability, automation, and higher-value workflows.
+              </p>
+
+              <div className="space-y-2 mb-6">
+                {features.map((feature) => (
+                  <div key={feature} className={`text-sm flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    <span className="text-emerald-500">✓</span>
+                    <span>{feature}</span>
                   </div>
                 ))}
               </div>
-              
-              {/* Pricing */}
-              <div className={`p-4 rounded-xl mb-6 ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {requiredTier === LicenseTier.PRO_PLUS ? '$19.99' : '$9.99'}
-                  </span>
-                  <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>/month</span>
-                </div>
-                <div className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                  or {requiredTier === LicenseTier.PRO_PLUS ? '$149.99' : '$79.99'}/year (save 37%)
-                </div>
+
+              <div className={`rounded-xl p-4 mb-5 border ${isDark ? 'bg-slate-800/70 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="text-xs uppercase tracking-[0.14em] text-slate-500">License model</div>
+                <div className={`font-semibold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Pay once · Permanent access</div>
+                <div className="text-xs text-slate-500 mt-1">Checkout shows the current canonical price.</div>
               </div>
-              
-              {/* CTA */}
+
+              {(localError || upgradeError) && (
+                <div className="mb-4 text-sm text-red-400">{localError || upgradeError}</div>
+              )}
+
+              {upgradeStatus === 'awaiting_payment' && (
+                <div className="mb-4 text-sm text-cyan-400">Checkout opened. PRO will unlock here automatically after payment.</div>
+              )}
+              {upgradeStatus === 'activating' && (
+                <div className="mb-4 text-sm text-cyan-400">Payment confirmed. Activating PRO…</div>
+              )}
+
               <div className="flex gap-3">
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`flex-1 py-3 rounded-xl font-medium text-white
-                    bg-gradient-to-r ${tierConfig.gradient} shadow-lg`}
-                  onClick={() => {
-                    // Open upgrade page
-                    window.open('https://nodaw.com/upgrade', '_blank');
-                  }}
+                  whileHover={{ scale: isBusy ? 1 : 1.02 }}
+                  whileTap={{ scale: isBusy ? 1 : 0.98 }}
+                  disabled={isBusy}
+                  onClick={handleUpgrade}
+                  className={`flex-1 py-3 rounded-xl font-medium text-white bg-gradient-to-r ${tierConfig.gradient} shadow-lg disabled:opacity-60`}
                 >
-                  Upgrade Now
+                  {upgradeStatus === 'creating' ? 'Preparing secure checkout…' :
+                   upgradeStatus === 'awaiting_payment' ? 'Waiting for payment…' :
+                   upgradeStatus === 'activating' ? 'Activating…' :
+                   `Unlock ${tierConfig.label}`}
                 </motion.button>
                 <button
                   onClick={onClose}
-                  className={`px-6 py-3 rounded-xl font-medium
-                    ${isDark ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+                  disabled={upgradeStatus === 'activating'}
+                  className={`px-5 py-3 rounded-xl font-medium ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-600'}`}
                 >
-                  Maybe Later
+                  Keep Free
                 </button>
+              </div>
+
+              <div className="text-[11px] text-slate-500 mt-4 text-center">
+                Already purchased elsewhere? Restore with your purchase email and license code in Settings.
               </div>
             </div>
           </motion.div>
@@ -311,156 +216,70 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose, too
   );
 };
 
-// ═══════════════════════════════════════════════════════════
-// MAIN PROGATE COMPONENT
-// ═══════════════════════════════════════════════════════════
-
 export const ProGate: React.FC<ProGateProps> = ({
   toolId,
   requiredTier = LicenseTier.PRO,
   children,
   mode = 'overlay',
   message,
-  showUsage = true,
-  onUpgradeClick
+  onUpgradeClick,
 }) => {
   const theme = useThemeStore(state => state.theme);
-  const isDark = theme === 'dark';
-  
   const tier = useLicenseStore(state => state.getCurrentTier());
-  const isDevMode = useLicenseStore(state => state.isDevMode);
-  const { canUse, getLimits, getUsageRemaining } = useUsageStore();
-  
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  
-  // Dev mode bypasses all gates
-  if (isDevMode) {
-    return <>{children}</>;
-  }
-  
-  // Check if user has access
-  const hasAccess = tier === LicenseTier.PRO_PLUS || 
-    (tier === LicenseTier.PRO && requiredTier !== LicenseTier.PRO_PLUS) ||
-    (tier === LicenseTier.FREE && requiredTier === LicenseTier.FREE);
-  
-  // Check usage limits for free tier
-  const usageCheck = canUse(toolId);
-  const canUseFeature = hasAccess && usageCheck.allowed;
-  
-  const limits = getLimits(toolId);
-  const remaining = getUsageRemaining(toolId);
-  
-  const tierConfig = TIER_CONFIG[requiredTier];
-  
-  // Badge mode - just show a small indicator
+  const hasAccess = tierAllows(tier, requiredTier);
+
+  if (hasAccess) return <>{children}</>;
+
+  const openUpgrade = () => {
+    onUpgradeClick?.();
+    setShowUpgradeModal(true);
+  };
+
   if (mode === 'badge') {
     return (
-      <div className="relative inline-flex">
-        {children}
-        {!hasAccess && (
-          <div className="absolute -top-1 -right-1">
-            <TierBadge tier={requiredTier} size="sm" />
-          </div>
-        )}
-      </div>
+      <>
+        <button onClick={openUpgrade} className="inline-flex items-center gap-2">
+          {children}
+          <TierBadge tier={requiredTier} size="sm" />
+        </button>
+        <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} toolId={toolId} requiredTier={requiredTier} />
+      </>
     );
   }
-  
-  // Block mode - completely hide content
-  if (mode === 'block' && !hasAccess) {
+
+  if (mode === 'block') {
     return (
-      <div 
-        className={`relative rounded-xl p-8 text-center
-          ${isDark ? 'bg-slate-900/50' : 'bg-slate-100'}`}
-        onClick={() => setShowUpgradeModal(true)}
-      >
-        <div className="text-4xl mb-4">🔒</div>
-        <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          {requiredTier === LicenseTier.PRO_PLUS ? 'Pro+ Feature' : 'Pro Feature'}
-        </h3>
-        <p className={`text-sm mb-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-          {message || `Upgrade to ${tierConfig.label} to unlock this feature`}
-        </p>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className={`px-6 py-2 rounded-lg font-medium text-white
-            bg-gradient-to-r ${tierConfig.gradient}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onUpgradeClick?.() || setShowUpgradeModal(true);
-          }}
+      <>
+        <button
+          onClick={openUpgrade}
+          className={`w-full rounded-xl border p-5 text-left ${theme === 'dark' ? 'border-slate-700 bg-slate-900/70' : 'border-slate-200 bg-white'}`}
         >
-          Upgrade to {tierConfig.label}
-        </motion.button>
-        
-        <UpgradeModal
-          isOpen={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          toolId={toolId}
-          requiredTier={requiredTier}
-        />
-      </div>
+          <div className="flex items-center gap-2 mb-1"><TierBadge tier={requiredTier} /><span className="font-semibold">Expanded capability</span></div>
+          <div className="text-sm text-slate-500">{message || 'This advanced feature is available with a one-time PRO unlock.'}</div>
+        </button>
+        <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} toolId={toolId} requiredTier={requiredTier} />
+      </>
     );
   }
-  
-  // Overlay mode - show content with overlay when locked or out of uses
+
   return (
-    <div className="relative">
-      {children}
-      
-      {/* Usage badge */}
-      {showUsage && tier === LicenseTier.FREE && hasAccess && limits && limits.dailyLimit > 0 && (
-        <div className="absolute top-2 right-2 z-10">
-          <UsageBadge toolId={toolId} />
-        </div>
-      )}
-      
-      {/* Overlay when no uses remaining */}
-      {(!hasAccess || (tier === LicenseTier.FREE && !canUseFeature)) && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className={`absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm
-            ${isDark ? 'bg-slate-950/90' : 'bg-white/90'}`}
+    <>
+      <div className="relative">
+        <div className="pointer-events-none select-none opacity-45">{children}</div>
+        <button
+          onClick={openUpgrade}
+          className="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-950/55 backdrop-blur-[2px]"
         >
-          <div className="text-4xl mb-3">
-            {hasAccess ? '⏱️' : '🔒'}
+          <div className="text-center px-4">
+            <TierBadge tier={requiredTier} />
+            <div className="text-sm text-white mt-2">{message || 'Unlock expanded capability and automation.'}</div>
+            <div className="text-xs text-slate-300 mt-1">One-time purchase · Free mode remains available</div>
           </div>
-          <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {hasAccess ? 'Daily Limit Reached' : `${tierConfig.label} Feature`}
-          </h3>
-          <p className={`text-sm text-center px-4 mb-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            {hasAccess 
-              ? 'You\'ve used all your free uses for today. Upgrade for unlimited access!'
-              : message || `Upgrade to ${tierConfig.label} to unlock this feature`
-            }
-          </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`px-6 py-2 rounded-lg font-medium text-white
-              bg-gradient-to-r ${tierConfig.gradient} shadow-lg`}
-            onClick={() => onUpgradeClick?.() || setShowUpgradeModal(true)}
-          >
-            Upgrade to {tierConfig.label}
-          </motion.button>
-          
-          {hasAccess && (
-            <p className={`text-xs mt-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-              Resets at midnight local time
-            </p>
-          )}
-        </motion.div>
-      )}
-      
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        toolId={toolId}
-        requiredTier={requiredTier}
-      />
-    </div>
+        </button>
+      </div>
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} toolId={toolId} requiredTier={requiredTier} />
+    </>
   );
 };
 

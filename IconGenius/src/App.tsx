@@ -6,7 +6,6 @@ declare global {
 }
 
 import React, { useState, useCallback, useRef } from 'react';
-import './App.css';
 import Cropper from 'react-easy-crop';
 import { Upload, Download, Image as ImageIcon, CheckCircle, Smartphone, Zap, X, Save, Minus, Eraser } from 'lucide-react';
 import { Area } from 'react-easy-crop/types';

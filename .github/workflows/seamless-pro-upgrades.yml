@@ -1,0 +1,58 @@
+name: Seamless PRO Upgrade
+
+on:
+  push:
+    branches:
+      - feat/seamless-pro-upgrades
+  pull_request:
+    paths:
+      - 'components/launcher/licenseStore.ts'
+      - 'components/launcher/ProGate.tsx'
+      - 'components/launcher/ShatterUnlockModal.tsx'
+      - 'components/launcher/LauncherApp.tsx'
+      - 'components/launcher/panels/SettingsPanel.tsx'
+      - 'electron/**'
+      - 'scripts/**'
+      - 'index.tsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/seamless-pro-upgrades.yml'
+
+jobs:
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_NODAW_ENTITLEMENTS_URL: https://entitlements.nodawlabs.com
+
+  windows-installer:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build unsigned Windows installer
+        run: npm run electron:build:win -- --publish never
+        env:
+          VITE_NODAW_ENTITLEMENTS_URL: https://entitlements.nodawlabs.com
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodaw-launcher-windows-${{ github.sha }}
+          path: |
+            release/*.exe
+            release/*.blockmap
+          if-no-files-found: error
+          retention-days: 14
